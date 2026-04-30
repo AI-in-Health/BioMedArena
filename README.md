@@ -23,10 +23,10 @@
   <tbody>
     <tr>
       <td>SOTA</td>
-      <td colspan="2">46.8</td>
-      <td colspan="2">80.5</td>
-      <td colspan="2">80.0</td>
-      <td colspan="2">38.5</td>
+      <td colspan="2"><a href="https://edisonscientific.com/articles/edison-literature-agent">46.8</a></td>
+      <td colspan="2"><a href="https://edisonscientific.com/articles/edison-literature-agent">80.5</a></td>
+      <td colspan="2"><a href="https://edisonscientific.com/articles/edison-literature-agent">80.0</a></td>
+      <td colspan="2"><a href="https://arxiv.org/abs/2512.01274">38.5</a></td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/arcee-ai/Trinity-Large-Thinking">Trinity-Large-Thinking</a></td>
@@ -265,6 +265,17 @@ python3 scripts/run_quick_suite.py
 python3 scripts/release_gate.py --strict
 python3 -m pytest tests/unit -q
 python3 -m pytest tests/smoke -q -m "not slow"
+```
+
+## Citation
+
+```bibtex
+@article{wu2026biomedarena,
+  title={BioMedArena: a state-of-the-art biomedical harness for evaluating AI agents at scale - 100+ benchmarks, 70+ tools},
+  author={Wu, J and Zhou, H and Liu, F},
+  xxx={xxx},
+  year={2026}
+}
 ```
 
 ## License
