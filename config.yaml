@@ -1,0 +1,79 @@
+llm:
+  provider: openai
+  model: gpt-4o
+  api_key: ${OPENAI_API_KEY}
+
+adapters:
+  geneagent:
+    enabled: true
+    class: GeneAgentAdapter
+    vendor_path: vendors/GeneAgent
+  genegpt:
+    enabled: true
+    class: GeneGPTAdapter
+    vendor_path: vendors/GeneGPT
+  ncbi_tools:
+    enabled: true
+    class: NCBIToolsAdapter
+    api_key: ${NCBI_API_KEY}
+  genotex:
+    enabled: true
+    class: GenoTEXAdapter
+    vendor_path: vendors/GenoTEX
+  genomas:
+    enabled: false
+    class: GenoMASAdapter
+    vendor_path: vendors/GenoMAS
+  openbio:
+    enabled: false
+    class: OpenBioAdapter
+    vendor_path: vendors/OpenBioLLM
+  ehragent:
+    enabled: true
+    class: EHRAgentAdapter
+    vendor_path: vendors/EhrAgent
+  colacare:
+    enabled: true
+    class: ColaCareAdapter
+    vendor_path: vendors/ColaCare
+  medagentbench:
+    enabled: true
+    class: MedAgentBenchAdapter
+    vendor_path: vendors/MedAgentBench
+    fhir_url: http://localhost:8080/fhir
+  mdagents:
+    enabled: true
+    class: MDAgentsAdapter
+    vendor_path: vendors/MDAgents
+  txagent:
+    enabled: true
+    class: TxAgentAdapter
+    vendor_path: vendors/TxAgent
+  agentclinic:
+    enabled: false
+    class: AgentClinicAdapter
+    vendor_path: vendors/AgentClinic
+  torchxrv:
+    enabled: true
+    class: TorchXRVAdapter
+  medagent_pro:
+    enabled: false
+    class: MedAgentProAdapter
+    vendor_path: vendors/MedAgent-Pro
+  drugagent:
+    enabled: true
+    class: DrugAgentAdapter
+    vendor_path: vendors/drugagent
+  prompt2pill:
+    enabled: false
+    class: Prompt2PillAdapter
+    vendor_path: vendors/Prompt-to-Pill
+  wearable:
+    enabled: true
+    class: WearableAdapter
+  clinical_calculators:
+    enabled: true
+    class: CalculatorAdapter
+  phenoage:
+    enabled: true
+    class: PhenoAgeAdapter

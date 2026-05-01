@@ -1,0 +1,69 @@
+# MCP server presets — selects which MCP servers to launch at runtime.
+#
+# Populated by concrete adapters at import time (see
+# harness/adapters/mcp_base.py :: MCP_SERVER_REGISTRY).
+#
+# Consumed by harness/orchestrator.py (Step 13+) to spin up the right
+# cohort of MCP servers for a given benchmark. Presets compose.
+#
+# ```python
+# from harness.adapters.mcp_base import MCP_SERVER_REGISTRY
+# import yaml, importlib.resources
+# presets = yaml.safe_load(
+#     importlib.resources.files("harness.adapters").joinpath("mcp_registry.yaml").read_text()
+# )["presets"]
+# servers = [MCP_SERVER_REGISTRY[n] for n in presets["minimal"]]
+# ```
+#
+# Adding a new server: write the adapter, call `register_mcp_server(…)`
+# at module top-level, import it in `harness/adapters/__init__.py`, then
+# reference its `.name` here.
+
+version: 1
+
+presets:
+  # Smallest footprint — just BioMCP.
+  minimal:
+    - biomcp
+
+  # Genomics-oriented cohort.
+  genomics:
+    - biomcp
+    - tooluniverse
+    - geo_mcp
+
+  # Drug discovery cohort.
+  drug_discovery:
+    - biomcp
+    - tooluniverse
+
+  # Imaging cohort — dicom-mcp for PACS network access.
+  imaging:
+    - dicom_mcp
+
+  # Literature cohort — PubMed + BioMCP's article tools.
+  literature:
+    - biomcp
+    - pubmed_mcp
+
+  # Protein cohort.
+  protein:
+    - uniprot_mcp
+    - tooluniverse
+
+  # Everything known to the registry. 6 MCP servers post-Step 19.
+  full:
+    - biomcp
+    - tooluniverse
+    - dicom_mcp
+    - pubmed_mcp
+    - geo_mcp
+    - uniprot_mcp
+
+# Launch policy defaults (overridable per-call).
+launch_defaults:
+  startup_timeout_s: 180
+  per_tool_timeout_s: 60
+  # Fire-and-forget stop on adapter destruction; don't block shutdown
+  # past this many seconds.
+  shutdown_grace_s: 5

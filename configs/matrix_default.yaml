@@ -1,0 +1,108 @@
+# Default benchmark matrix.
+# Iterates over (backbone × mode × benchmark) cells. Override by editing
+# this file or by passing --config to scripts/run_matrix.py.
+
+backbones:
+  - id: claude
+    provider: anthropic
+    model: claude-sonnet-4-5
+    api_key_env: ANTHROPIC_API_KEY
+  - id: openai
+    provider: openai
+    model: gpt-4o
+    api_key_env: OPENAI_API_KEY
+  - id: gemini
+    provider: gemini
+    model: gemini-2.5-flash
+    api_key_env: GEMINI_API_KEY
+
+modes_default: [heavy, light, simple_llm]
+
+benchmarks:
+  # ---- Core biomedical ----
+  - name: medcalc
+    loader: load_medcalc_tasks
+    kwargs: {limit: null}
+    benchmark_key: medcalc
+
+  - name: medxpertqa
+    loader: load_medxpertqa_tasks
+    kwargs: {limit: 30, subset: "Text"}
+    benchmark_key: medxpertqa
+
+  - name: labbench
+    loader: load_labbench_tasks
+    kwargs:
+      limit: 30
+      subsets: ["LitQA2", "CloningScenarios", "ProtocolQA"]
+    benchmark_key: labbench
+
+  - name: labbench2
+    loader: load_labbench2_tasks
+    kwargs:
+      limit: null
+      subsets: ["litqa3", "patentqa", "trialqa", "dbqa2", "suppqa2", "figqa2", "tableqa2"]
+      skip_with_files: true
+      include_multimodal: false
+    benchmark_key: labbench2
+
+  - name: bioasq
+    loader: load_bioasq_tasks
+    kwargs: {limit: 30}
+    benchmark_key: bioasq
+
+  - name: gpqa_bio
+    loader: load_gpqa_bio_tasks
+    kwargs: {limit: null}   # official GPQA Diamond full split has 198 instances
+    benchmark_key: hle_bio_med_chem
+
+  - name: bixbench
+    loader: load_bixbench_tasks
+    kwargs: {limit: null}
+    benchmark_key: bixbench_closed_book
+
+  - name: medagentbench
+    loader: load_medagentbench_tasks
+    kwargs: {limit: 20}
+    benchmark_key: medagentbench
+
+  - name: agentclinic
+    loader: load_agentclinic_tasks
+    kwargs: {limit: 15}
+    benchmark_key: agentclinic
+
+  - name: pathvqa
+    loader: load_pathvqa_tasks
+    kwargs: {limit: 15}
+    benchmark_key: pathvqa
+    # GPT-4o multimodal via OpenAI API works but is expensive and
+    # occasionally truncates image encoding — skip here.
+    backbone_restriction: [claude, gemini]
+
+  # ---- HLE-Gold + chemistry/genomics ----
+  - name: hle_gold
+    loader: load_hle_gold_tasks
+    kwargs: {limit: null, include_chemistry: true}
+    benchmark_key: hle_gold
+
+  - name: super_chemistry
+    loader: load_super_chemistry_tasks
+    kwargs: {limit: null, language: "en", include_images: false, require_images: false, skip_with_images: true}
+    benchmark_key: super_chemistry
+
+  - name: genotex
+    loader: load_genotex_tasks
+    kwargs: {limit: 18}
+    benchmark_key: genotex
+
+seeds: [42]
+
+cost_monitor:
+  hard_stop_usd: 110
+  soft_warn_usd: 90
+
+timeout:
+  per_task_s: 240     # 4 min per task
+  per_cell_s: 2700    # 45 min per cell
+
+base_config: config.yaml

@@ -1,0 +1,21 @@
+# dicom-mcp configuration — placeholder for harness integration.
+#
+# Real DICOM workflows require a live PACS node (Orthanc, dcm4chee,
+# etc.) reachable over DIMSE. For smoke-testing we point at localhost:
+# the server will start and enumerate its tools, and any tool that
+# actually tries to contact the node will fail gracefully with a
+# connection error (which is the expected behaviour in CI without a
+# PACS).
+#
+# To use against a real PACS, duplicate this file and point `host` at
+# the real server.
+
+nodes:
+  main:
+    host: 127.0.0.1
+    port: 4242
+    ae_title: DCM4CHEE
+    description: Placeholder Orthanc-style PACS node (not reachable in CI).
+
+current_node: main
+calling_aet: HARNESS

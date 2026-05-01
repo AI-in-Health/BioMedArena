@@ -1,0 +1,8 @@
+# PyTDC vendor venv pin file
+# Install with:
+#   uv venv --python 3.11 vendors/pytdc/.venv311
+#   uv pip install --python vendors/pytdc/.venv311/bin/python -r vendors/pytdc/requirements.txt
+PyTDC
+pandas
+numpy
+rdkit

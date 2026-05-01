@@ -1,0 +1,78 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "biomedarena"
+version = "0.1.0"
+description = "BioMedArena: a biomedical harness for evaluating AI agents at scale"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "BioMedArena contributors"}
+]
+keywords = ["llm", "agents", "biomedical", "benchmarks", "evaluation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+    "httpx>=0.27",
+    "pyyaml>=6.0",
+    "openai>=1.0",
+    "anthropic>=0.30",
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+eval = ["datasets>=2.16", "huggingface_hub>=0.24"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
+provider-gemini = ["google-genai>=1.0"]
+mcp = ["mcp>=1.0"]
+tools-bio = ["biopython>=1.83", "gget>=0.29", "mygene>=3.2"]
+tools-chem = ["rdkit>=2023.9"]
+tools-clinical = ["lifelines>=0.28", "fhirpy>=2.0", "fhir.resources>=7.0"]
+tools-imaging = ["torchxrayvision>=1.0", "pydicom>=2.4", "highdicom>=0.23"]
+singlecell = ["scanpy>=1.10", "anndata>=0.10"]
+all-tools = [
+    "datasets>=2.16",
+    "huggingface_hub>=0.24",
+    "google-genai>=1.0",
+    "mcp>=1.0",
+    "biopython>=1.83",
+    "gget>=0.29",
+    "mygene>=3.2",
+    "rdkit>=2023.9",
+    "lifelines>=0.28",
+    "fhirpy>=2.0",
+    "fhir.resources>=7.0",
+    "torchxrayvision>=1.0",
+    "pydicom>=2.4",
+    "highdicom>=0.23",
+    "scanpy>=1.10",
+    "anndata>=0.10",
+]
+
+[project.scripts]
+bioagent = "harness.cli:main"
+
+[project.urls]
+Repository = "https://github.com/AI-in-Health/BioMedArena"
+
+[tool.hatch.build.targets.wheel]
+packages = ["harness"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+markers = [
+    "slow: tests that spawn subprocesses, hit live APIs, or require large model downloads",
+]

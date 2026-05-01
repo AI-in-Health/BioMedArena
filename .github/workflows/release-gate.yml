@@ -1,0 +1,38 @@
+name: release-gate
+
+on:
+  push:
+    branches: [main, refine_1]
+  pull_request:
+
+jobs:
+  quick-suite:
+    name: Quick suite and unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,eval]"
+
+      - name: Run offline quick suite
+        run: python scripts/run_quick_suite.py
+
+      - name: Run release gate
+        run: python scripts/release_gate.py --strict
+
+      - name: Run unit tests
+        run: python -m pytest tests/unit -q

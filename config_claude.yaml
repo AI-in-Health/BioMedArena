@@ -1,0 +1,66 @@
+llm:
+  provider: anthropic
+  # Use the latest Sonnet by default. Opus is stronger but ~5x the cost.
+  # Options: claude-sonnet-4-5, claude-opus-4-5, claude-sonnet-4-6 (Nov 2025)
+  model: claude-sonnet-4-5
+  api_key: ${ANTHROPIC_API_KEY}
+
+retrieval:
+  omim_api_key: ${OMIM_API_KEY}
+  ncbi_api_key: ${NCBI_API_KEY}
+  cache_dir: data/cache/retrieval
+
+function_calling:
+  max_iterations: 5
+  per_tool_timeout_s: 20
+  truncate_tool_result_chars: 2000
+
+self_consistency:
+  n: 5
+  temperatures: [0.3, 0.4, 0.5, 0.6, 0.7]
+
+adapters:
+  ncbi_tools:
+    enabled: true
+    class: NCBIToolsAdapter
+    api_key: ${NCBI_API_KEY}
+  clinical_calculators:
+    enabled: true
+    class: CalculatorAdapter
+  phenoage:
+    enabled: true
+    class: PhenoAgeAdapter
+  wearable:
+    enabled: true
+    class: WearableAdapter
+  geneagent:
+    enabled: true
+    class: GeneAgentAdapter
+    vendor_path: vendors/GeneAgent
+  genegpt:
+    enabled: true
+    class: GeneGPTAdapter
+    vendor_path: vendors/GeneGPT
+  genotex:
+    enabled: true
+    class: GenoTEXAdapter
+    vendor_path: vendors/GenoTEX
+  ehragent:
+    enabled: true
+    class: EHRAgentAdapter
+    vendor_path: vendors/EhrAgent
+  mdagents:
+    enabled: true
+    class: MDAgentsAdapter
+    vendor_path: vendors/MDAgents
+  txagent:
+    enabled: true
+    class: TxAgentAdapter
+    vendor_path: vendors/TxAgent
+  drugagent:
+    enabled: true
+    class: DrugAgentAdapter
+    vendor_path: vendors/drugagent
+  torchxrv:
+    enabled: true
+    class: TorchXRVAdapter
