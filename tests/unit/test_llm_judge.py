@@ -46,8 +46,9 @@ def test_open_answer_types_set():
     assert "freetext" in OPEN_ANSWER_TYPES
 
 
-def test_pick_judge_model_always_claude():
+def test_pick_judge_model_always_claude(monkeypatch):
     """Judge model is always claude-sonnet-4-5 regardless of target."""
+    monkeypatch.delenv("BIOAGENT_JUDGE_MODEL", raising=False)
     for target in [
         "gemini-2.5-flash",
         "claude-sonnet-4-5",
@@ -61,8 +62,9 @@ def test_pick_judge_model_always_claude():
         )
 
 
-def test_pick_judge_model_default_arg():
+def test_pick_judge_model_default_arg(monkeypatch):
     """``pick_judge_model`` works with no argument (default empty string)."""
+    monkeypatch.delenv("BIOAGENT_JUDGE_MODEL", raising=False)
     assert pick_judge_model() == "claude-sonnet-4-5"
 
 
