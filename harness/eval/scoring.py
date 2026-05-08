@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 import string
 
@@ -23,6 +24,17 @@ _ANSWER_TYPE_ALIASES = {
     "open_ended": "openText",
     "freetext": "openText",
     "free_text": "openText",
+    "tokensequence": "tokenSequence",
+    "token_sequence": "tokenSequence",
+    "sequence_labels": "tokenSequence",
+    "relationset": "relationSet",
+    "relation_set": "relationSet",
+    "multilabel": "multiLabel",
+    "multi_label": "multiLabel",
+    "multilabelclassification": "multiLabel",
+    "multi_label_classification": "multiLabel",
+    "ranking": "ranking",
+    "ranked_list": "ranking",
 }
 
 
@@ -75,17 +87,27 @@ def _is_english_word(letter: str, text: str, letter_end: int) -> bool:
 
 def _extract_mc_answer(response: str) -> str:
     """Extract a multiple-choice letter (A-Z) from an LLM response."""
+    direct = re.sub(r"[^A-Za-z]", "", str(response or "").strip()).upper()
+    if direct and re.fullmatch(r"[A-J]{1,10}", direct):
+        return direct
+
     LETTERS = "A-Za-z"
+    answer_value = rf"([{LETTERS}](?:[\s,;/]+[{LETTERS}])+|[{LETTERS}]{{1,10}})"
 
     # 1. "The answer is (X)" / "The answer is X"
-    m = re.search(rf"[Tt]he\s+answer\s+is\s*\(?([{LETTERS}])\)?", response)
+    m = re.search(rf"[Tt]he\s+answer\s+is\s*\(?{answer_value}\)?", response)
     if m:
-        return m.group(1).upper()
+        return _clean_mc_match(m.group(1))
 
     # 2. "Answer: X" / "Answer: (X)"
-    m = re.search(rf"[Aa]nswer:\s*\(?([{LETTERS}])\)?", response)
+    m = re.search(rf"[Aa]nswer:\s*\(?{answer_value}\)?", response)
     if m:
-        return m.group(1).upper()
+        return _clean_mc_match(m.group(1))
+
+    # 2b. Chinese final-answer patterns used by CMB-style prompts.
+    m = re.search(rf"答案\s*(?:是|为|:|：)\s*\(?{answer_value}\)?", response)
+    if m:
+        return _clean_mc_match(m.group(1))
 
     # 3. Boxed answer: \boxed{X}
     m = re.search(rf"\\boxed\{{([{LETTERS}])\}}", response)
@@ -113,6 +135,14 @@ def _extract_mc_answer(response: str) -> str:
             return letter.upper()
 
     return normalize_text(response)
+
+
+def _clean_mc_match(value: str) -> str:
+    """Normalize a final-answer MCQ match without turning English words into multi-selects."""
+    letters = re.sub(r"[^A-Za-z]", "", value).upper()
+    if len(letters) > 1 and any(letter not in "ABCDEFGHIJ" for letter in letters):
+        return letters[0]
+    return letters
 
 
 def _extract_exact_answer(response: str) -> str:
@@ -188,6 +218,11 @@ def score_multiple_choice(predicted: str, expected: str) -> bool:
     pred_letter = predicted.strip().upper()
     exp_letter = expected.strip().upper()
 
+    pred_set = re.sub(r"[^A-Z]", "", pred_letter)
+    exp_set = re.sub(r"[^A-Z]", "", exp_letter)
+    if pred_set and exp_set and (len(pred_set) > 1 or len(exp_set) > 1):
+        return sorted(pred_set) == sorted(exp_set)
+
     # Both should be single letters at this point
     if len(pred_letter) == 1 and len(exp_letter) == 1:
         return pred_letter == exp_letter
@@ -238,6 +273,16 @@ def extract_numeric_answer(response: str) -> tuple[float | None, str]:
         return None, "extraction_failed"
 
     cleaned = response.replace(",", "")
+    stripped = cleaned.strip()
+
+    # Direct scalar outputs such as "0", "1", or "1.0" are common for
+    # binary classification mirrors and should not be filtered as formula
+    # constants by the free-text fallback.
+    if re.fullmatch(_NUMERIC_RE, stripped):
+        try:
+            return float(stripped), "direct_scalar"
+        except ValueError:
+            pass
 
     # 1. Primary: "The answer is [number]" / "Answer is: number"
     m = re.search(
@@ -357,6 +402,134 @@ def score_open_text(predicted: str, expected: str) -> bool:
     return overlap >= 0.6
 
 
+def _parse_json_answer(value: str):
+    if not isinstance(value, str):
+        return value
+    text = value.strip()
+    for candidate in (text, _extract_exact_answer(text)):
+        if not candidate:
+            continue
+        try:
+            return json.loads(candidate)
+        except (TypeError, json.JSONDecodeError):
+            continue
+    return text
+
+
+def _bio_spans(tags: list[str]) -> set[tuple[str, int, int]]:
+    spans: set[tuple[str, int, int]] = set()
+    current_type = ""
+    start = -1
+    for idx, raw_tag in enumerate(tags + ["O"]):
+        tag = str(raw_tag)
+        if tag.startswith("B-"):
+            if current_type:
+                spans.add((current_type, start, idx))
+            current_type = tag[2:]
+            start = idx
+        elif tag.startswith("I-") and current_type == tag[2:]:
+            continue
+        else:
+            if current_type:
+                spans.add((current_type, start, idx))
+            current_type = ""
+            start = -1
+            if tag.startswith("I-"):
+                current_type = tag[2:]
+                start = idx
+    return spans
+
+
+def _f1(pred_items: set, exp_items: set) -> float:
+    if not pred_items and not exp_items:
+        return 1.0
+    if not pred_items or not exp_items:
+        return 0.0
+    tp = len(pred_items & exp_items)
+    precision = tp / len(pred_items)
+    recall = tp / len(exp_items)
+    if precision + recall == 0:
+        return 0.0
+    return 2 * precision * recall / (precision + recall)
+
+
+def token_label_f1(predicted: str, expected: str) -> float:
+    """Entity-level F1 for BIO/IOB token labels."""
+    pred = _parse_json_answer(predicted)
+    exp = _parse_json_answer(expected)
+    if isinstance(pred, str):
+        pred = [part for part in re.split(r"[\s,]+", pred.strip()) if part]
+    if isinstance(exp, str):
+        exp = [part for part in re.split(r"[\s,]+", exp.strip()) if part]
+    if not isinstance(pred, list) or not isinstance(exp, list):
+        return 0.0
+    return _f1(_bio_spans([str(x) for x in pred]), _bio_spans([str(x) for x in exp]))
+
+
+def _parse_multilabel_value(value: str) -> set[str] | None:
+    parsed = _parse_json_answer(value)
+    if isinstance(parsed, dict):
+        if "labels" in parsed:
+            parsed = parsed["labels"]
+        elif "label" in parsed:
+            parsed = parsed["label"]
+    if isinstance(parsed, list):
+        labels: set[str] = set()
+        vector_like = all(str(item).strip() in {"0", "1", "0.0", "1.0", "False", "True", "false", "true"} for item in parsed)
+        for idx, item in enumerate(parsed):
+            text = str(item).strip()
+            if vector_like:
+                if text.lower() in {"1", "1.0", "true"}:
+                    labels.add(str(idx))
+            elif text:
+                labels.add(normalize_text(text))
+        return labels
+    if isinstance(parsed, str):
+        text = parsed.strip()
+        if not text:
+            return set()
+        parts = [part for part in re.split(r"[\n,;|]+", text) if part.strip()]
+        if len(parts) > 1:
+            return _parse_multilabel_value(json.dumps([part.strip() for part in parts]))
+        return {normalize_text(text)}
+    return None
+
+
+def multilabel_f1(predicted: str, expected: str) -> float:
+    """Instance-level F1 for multilabel classification outputs."""
+    pred_set = _parse_multilabel_value(predicted)
+    exp_set = _parse_multilabel_value(expected)
+    if pred_set is None or exp_set is None:
+        return 0.0
+    return _f1(pred_set, exp_set)
+
+
+def _relation_key(item) -> tuple[str, str, str] | None:
+    if not isinstance(item, dict):
+        return None
+    relation_type = normalize_text(str(item.get("type") or item.get("relation") or "relation"))
+    arg1 = normalize_text(str(item.get("arg1_id") or item.get("arg1") or item.get("head") or ""))
+    arg2 = normalize_text(str(item.get("arg2_id") or item.get("arg2") or item.get("tail") or ""))
+    if not arg1 or not arg2:
+        return None
+    return relation_type, arg1, arg2
+
+
+def relation_set_f1(predicted: str, expected: str) -> float:
+    """Micro F1 for JSON relation sets."""
+    pred = _parse_json_answer(predicted)
+    exp = _parse_json_answer(expected)
+    if isinstance(pred, dict):
+        pred = [pred]
+    if isinstance(exp, dict):
+        exp = [exp]
+    if not isinstance(pred, list) or not isinstance(exp, list):
+        return 0.0
+    pred_set = {key for item in pred if (key := _relation_key(item))}
+    exp_set = {key for item in exp if (key := _relation_key(item))}
+    return _f1(pred_set, exp_set)
+
+
 def score_question(predicted: str, expected: str, answer_type: str, context: dict | None = None) -> bool:
     """Score a question based on its type.
 
@@ -381,6 +554,20 @@ def score_question(predicted: str, expected: str, answer_type: str, context: dic
             "scorer_params": ctx.get("scorer_params") or {},
         }
         return bool(score_labbench2_regex(predicted, task_like).get("correct"))
+    if scorer_kind == "token_f1" or answer_type == "tokenSequence":
+        return token_label_f1(predicted, expected) >= 0.999
+    if scorer_kind == "relation_f1" or answer_type == "relationSet":
+        return relation_set_f1(predicted, expected) >= 0.999
+    if scorer_kind == "multilabel_f1" or answer_type == "multiLabel":
+        return multilabel_f1(predicted, expected) >= 0.999
+    if scorer_kind == "retrieval_hit" or answer_type == "ranking":
+        return retrieval_hit(predicted, expected)
+    if scorer_kind == "smiles_topk_canonical_match":
+        return smiles_topk_canonical_match(predicted, expected)
+    if scorer_kind == "smiles_validity_plus_tanimoto":
+        return smiles_validity_tanimoto_match(predicted, expected) >= 0.999
+    if scorer_kind == "pio_span_f1":
+        return token_label_f1(predicted, expected) >= 0.999 or score_exact_match(predicted, expected)
 
     extracted = extract_answer_from_response(predicted, answer_type)
 
@@ -399,3 +586,98 @@ def score_question(predicted: str, expected: str, answer_type: str, context: dic
         return score_open_text(predicted, expected)
 
     return score_exact_match(extracted, expected)
+
+
+def retrieval_hit(predicted: str, expected: str) -> bool:
+    """Return True when a ranked-id prediction contains any relevant id."""
+    expected_ids = _parse_id_list(expected)
+    predicted_ids = _parse_id_list(predicted)
+    if not expected_ids or not predicted_ids:
+        return False
+    return bool(set(expected_ids) & set(predicted_ids))
+
+
+def smiles_topk_canonical_match(predicted: str, expected: str) -> bool:
+    expected_set = {_canonical_smiles(item) for item in _parse_smiles_candidates(expected)}
+    predicted_set = {_canonical_smiles(item) for item in _parse_smiles_candidates(predicted)}
+    expected_set.discard("")
+    predicted_set.discard("")
+    if expected_set and predicted_set:
+        return bool(expected_set & predicted_set)
+    return normalize_text(predicted) == normalize_text(expected)
+
+
+def smiles_validity_tanimoto_match(predicted: str, expected: str) -> float:
+    pred_candidates = [_canonical_smiles(item) for item in _parse_smiles_candidates(predicted)]
+    exp_candidates = [_canonical_smiles(item) for item in _parse_smiles_candidates(expected)]
+    pred_candidates = [item for item in pred_candidates if item]
+    exp_candidates = [item for item in exp_candidates if item]
+    if not pred_candidates or not exp_candidates:
+        return 1.0 if normalize_text(predicted) == normalize_text(expected) else 0.0
+    if set(pred_candidates) & set(exp_candidates):
+        return 1.0
+    try:
+        from rdkit import Chem, DataStructs
+        from rdkit.Chem import AllChem
+    except ImportError:
+        return 0.0
+    best = 0.0
+    for pred in pred_candidates:
+        pred_mol = Chem.MolFromSmiles(pred)
+        if pred_mol is None:
+            continue
+        pred_fp = AllChem.GetMorganFingerprintAsBitVect(pred_mol, 2, nBits=2048)
+        for exp in exp_candidates:
+            exp_mol = Chem.MolFromSmiles(exp)
+            if exp_mol is None:
+                continue
+            exp_fp = AllChem.GetMorganFingerprintAsBitVect(exp_mol, 2, nBits=2048)
+            best = max(best, float(DataStructs.TanimotoSimilarity(pred_fp, exp_fp)))
+    return best
+
+
+def _parse_smiles_candidates(value: str) -> list[str]:
+    parsed = _parse_json_answer(value)
+    if isinstance(parsed, dict):
+        for key in ("smiles", "product", "products", "prediction", "predictions", "answer"):
+            if key in parsed:
+                return _parse_smiles_candidates(json.dumps(parsed[key]))
+    if isinstance(parsed, list):
+        return [str(item).strip() for item in parsed if str(item).strip()]
+    text = str(parsed or value or "").strip()
+    if not text:
+        return []
+    parts = [part.strip() for part in re.split(r"[\n,;]+", text) if part.strip()]
+    return parts or [text]
+
+
+def _canonical_smiles(value: str) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    try:
+        from rdkit import Chem
+    except ImportError:
+        return text
+    mol = Chem.MolFromSmiles(text)
+    if mol is None:
+        return ""
+    return Chem.MolToSmiles(mol, canonical=True)
+
+
+def _parse_id_list(value: str) -> list[str]:
+    parsed = _parse_json_answer(value)
+    if isinstance(parsed, dict):
+        for key in ("relevant_doc_ids", "ranked_doc_ids", "doc_ids", "ids"):
+            if key in parsed:
+                parsed = parsed[key]
+                break
+    if isinstance(parsed, list):
+        return [str(item).strip() for item in parsed if str(item).strip()]
+    text = str(parsed or value or "").strip()
+    if not text:
+        return []
+    ids = re.findall(r"(?:doc(?:ument)?[_\s-]?id|corpus[_\s-]?id)\s*[:=]\s*([A-Za-z0-9_.:-]+)", text, re.I)
+    if ids:
+        return ids
+    return [part.strip() for part in re.split(r"[\s,;]+", text) if part.strip()]

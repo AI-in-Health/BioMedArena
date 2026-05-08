@@ -197,6 +197,7 @@ class BenchmarkSuite:
                     tool_call_accuracy=tool_acc,
                     reasoning_faithfulness=faith,
                     latency_s=round(latency, 2),
+                    context=task.get("context") or {},
                 )
                 # Attach scoring metadata for downstream analysis
                 qm._score_method = score_out.get("method", "")
@@ -216,6 +217,7 @@ class BenchmarkSuite:
                     task_success=False,
                     latency_s=round(time.monotonic() - start, 2),
                     error=str(exc),
+                    context=task.get("context") or {},
                 )
                 qm_err._answer_type = task.get("answer_type", "")
                 return qm_err

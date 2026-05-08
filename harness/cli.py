@@ -33,16 +33,9 @@ BENCHMARKS: dict[str, dict[str, Any]] = {
         "loader": "load_labbench_tasks",
         "benchmark_key": "labbench",
         "kwargs": {"subsets": ["LitQA2", "CloningScenarios", "ProtocolQA"]},
+        "scorer": "labbench_official_evaluator",
     },
     "labbench2": {
-        "loader": "load_labbench2_tasks",
-        "benchmark_key": "labbench2",
-        "kwargs": {"subsets": ["litqa3", "patentqa", "trialqa", "dbqa2",
-                               "suppqa2", "figqa2", "tableqa2"],
-                   "include_multimodal": False,
-                   "skip_with_files": True},
-    },
-    "labbench2_821": {
         "loader": "load_labbench2_tasks",
         "benchmark_key": "labbench2",
         "kwargs": {"subsets": ["litqa3", "patentqa", "trialqa", "dbqa2",
@@ -53,6 +46,7 @@ BENCHMARKS: dict[str, dict[str, Any]] = {
     "bioasq": {
         "loader": "load_bioasq_tasks",
         "benchmark_key": "bioasq",
+        "scorer": "bioasq_official",
     },
     "gpqa_bio": {
         "loader": "load_gpqa_bio_tasks",
@@ -84,6 +78,7 @@ BENCHMARKS: dict[str, dict[str, Any]] = {
     "agentclinic": {
         "loader": "load_agentclinic_tasks",
         "benchmark_key": "agentclinic",
+        "scorer": "agentclinic_dialogue_loop",
     },
     "medagentbench": {
         "loader": "load_medagentbench_tasks",
@@ -92,6 +87,7 @@ BENCHMARKS: dict[str, dict[str, Any]] = {
     "bixbench": {
         "loader": "load_bixbench_tasks",
         "benchmark_key": "bixbench_closed_book",
+        "scorer": "bixbench_agent_runner",
     },
     "genotex": {
         "loader": "load_genotex_tasks",
@@ -128,6 +124,7 @@ BENCHMARKS: dict[str, dict[str, Any]] = {
     "healthbench": {
         "loader": "load_healthbench_tasks",
         "benchmark_key": "healthbench",
+        "scorer": "openai_simple_evals_rubric_judge",
     },
     "bioprobench": {
         "loader": "load_bioprobench_tasks",
@@ -148,8 +145,13 @@ BENCHMARKS: dict[str, dict[str, Any]] = {
 }
 
 try:
-    from harness.eval.hf_benchmark_registry import hf_benchmark_cli_entries
+    from harness.eval.hf_benchmark_registry import HF_DEPRECATED_ALIASES, hf_benchmark_cli_entries
     BENCHMARKS.update(hf_benchmark_cli_entries())
+    for alias, canonical in HF_DEPRECATED_ALIASES.items():
+        if canonical in BENCHMARKS and alias not in BENCHMARKS:
+            meta = dict(BENCHMARKS[canonical])
+            meta["deprecated_alias_for"] = canonical
+            BENCHMARKS[alias] = meta
 except Exception:
     # Keep the core CLI usable if optional HF registry imports fail.
     pass
@@ -188,6 +190,10 @@ BACKBONES: dict[str, dict[str, str]] = {
         "api_key_env": "GEMINI_API_KEY",
     },
     "gemini-2.5-pro": {
+        "provider": "gemini",
+        "api_key_env": "GEMINI_API_KEY",
+    },
+    "gemini-3-flash-preview": {
         "provider": "gemini",
         "api_key_env": "GEMINI_API_KEY",
     },
@@ -313,6 +319,12 @@ def _load_tasks(benchmark: str, limit: int, seed: int) -> list[dict[str, Any]]:
     import importlib
 
     meta = BENCHMARKS[benchmark]
+    if meta.get("deprecated_alias_for"):
+        print(
+            f"warning: benchmark {benchmark!r} is deprecated; "
+            f"redirecting to {meta['deprecated_alias_for']!r}",
+            file=sys.stderr,
+        )
     loader_name = meta["loader"]
     short = loader_name.replace("load_", "").replace("_tasks", "")
     module = importlib.import_module(f"harness.eval.bench_{short}")
@@ -572,6 +584,11 @@ async def _run_once(
     n_clean = len(clean_results)
     correct_clean = sum(1 for q in clean_results if q.get("task_success"))
     accuracy_clean = correct_clean / n_clean if n_clean else 0.0
+    try:
+        from harness.eval.official_metrics import compute_official_metrics
+        official_metrics = compute_official_metrics(benchmark, clean_results or all_results)
+    except Exception as exc:
+        official_metrics = {"status": "error", "reason": str(exc)}
 
     print(f"Benchmark: {benchmark}")
     print(f"Backbone:  {backbone}")
@@ -589,6 +606,15 @@ async def _run_once(
         print(f"Judge failed: {judge_failed} tasks (fell back to string match)")
     if infra_errors:
         print(f"Infra errors: {infra_errors} tasks (will retry on --resume)")
+    if official_metrics.get("status") == "ok":
+        metric_bits = [
+            f"{k}={v:.4f}" for k, v in official_metrics.items()
+            if isinstance(v, float) and k not in {"n_records", "n_scored"}
+        ]
+        if metric_bits:
+            print("Official:  " + ", ".join(metric_bits))
+    elif official_metrics.get("status") == "unavailable":
+        print(f"Official:  unavailable ({official_metrics.get('reason')})")
 
     if verbose:
         print("\nPer-task:")
@@ -612,6 +638,7 @@ async def _run_once(
             "accuracy_clean": accuracy_clean,
             "n_infra_errors": infra_errors,
             "n_judge_failed": judge_failed,
+            "official_metrics": official_metrics,
             "per_question": all_results,
         }
         Path(output).parent.mkdir(parents=True, exist_ok=True)
