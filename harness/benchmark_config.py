@@ -269,7 +269,7 @@ def build_system_prompt(
       - "off":      keep base_prompt unchanged
     """
     import os
-    web_mode = os.environ.get("BIOAGENT_WEB_TOOLS", "off")
+    web_mode = os.environ.get("BIOMEDARENA_WEB_TOOLS", "off")
 
     cfg = get_config(benchmark_name)
 
@@ -331,13 +331,13 @@ def filter_tools(
       2. Else if config.tool_categories is non-empty → category-filter.
       3. Else → return all_tool_specs unchanged.
 
-    The ``BIOAGENT_WEB_TOOLS`` env var controls web tool inclusion:
+    The ``BIOMEDARENA_WEB_TOOLS`` env var controls web tool inclusion:
       - "off" (default): exclude web tools from the pool.
       - "only": return ONLY the web tools (serper_search + jina_read_page).
       - "combined": include web tools alongside the benchmark's category tools.
     """
     import os
-    web_mode = os.environ.get("BIOAGENT_WEB_TOOLS", "off")
+    web_mode = os.environ.get("BIOMEDARENA_WEB_TOOLS", "off")
 
     # Lazy import to avoid circular dependency.
     from harness.tools.tool_categories import (

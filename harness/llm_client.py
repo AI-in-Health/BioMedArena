@@ -27,7 +27,7 @@ class ContextWindowError(RuntimeError):
 # threading ``trace`` through every retry branch.
 # Tuple: (input_tokens, output_tokens, cost_usd, finish_reason).
 _LAST_LLM_USAGE: contextvars.ContextVar[tuple[int, int, float, str]] = (
-    contextvars.ContextVar("bioagent_last_llm_usage", default=(0, 0, 0.0, ""))
+    contextvars.ContextVar("biomedarena_last_llm_usage", default=(0, 0, 0.0, ""))
 )
 
 

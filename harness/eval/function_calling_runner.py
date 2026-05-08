@@ -438,7 +438,7 @@ except ImportError:
 
 # Web search tools (Serper + Jina) — always registered in the pool;
 # filter_tools() gates whether they are advertised to the model based on
-# the BIOAGENT_WEB_TOOLS env var ("off" / "only" / "combined").
+# the BIOMEDARENA_WEB_TOOLS env var ("off" / "only" / "combined").
 try:
     from harness.tools.web_search import (
         WEB_TOOL_SPECS,
@@ -970,14 +970,14 @@ class FunctionCallingRunner:
         # Sub-agent web_tools override: temporarily set env var for filter_tools
         _prev_web = None
         if self._web_tools_override is not None:
-            _prev_web = _os.environ.get("BIOAGENT_WEB_TOOLS")
-            _os.environ["BIOAGENT_WEB_TOOLS"] = self._web_tools_override
+            _prev_web = _os.environ.get("BIOMEDARENA_WEB_TOOLS")
+            _os.environ["BIOMEDARENA_WEB_TOOLS"] = self._web_tools_override
         _tool_pool = filter_tools(_bench_key, TOOL_SPECS)
         # Restore env var
         if _prev_web is not None:
-            _os.environ["BIOAGENT_WEB_TOOLS"] = _prev_web
+            _os.environ["BIOMEDARENA_WEB_TOOLS"] = _prev_web
         elif self._web_tools_override is not None:
-            _os.environ.pop("BIOAGENT_WEB_TOOLS", None)
+            _os.environ.pop("BIOMEDARENA_WEB_TOOLS", None)
         if not _tool_pool:
             # Empty whitelist → tools disabled for this benchmark.
             _tool_pool = []

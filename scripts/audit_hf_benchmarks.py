@@ -28,7 +28,7 @@ def _load_env() -> None:
     except ImportError:
         return
     candidates = [REPO_ROOT / ".env"]
-    extra_env_file = os.environ.get("BIOAGENT_ENV_FILE")
+    extra_env_file = os.environ.get("BIOMEDARENA_ENV_FILE")
     if extra_env_file:
         candidates.insert(0, Path(extra_env_file).expanduser())
     for candidate in candidates:

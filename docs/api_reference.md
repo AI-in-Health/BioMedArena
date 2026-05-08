@@ -1,19 +1,20 @@
 # API reference
 
 Python API for programmatic access to BioMedArena. For
-command-line usage see the ``bioagent`` CLI documented in the
+command-line usage see the ``biomedarena`` CLI documented in the
 top-level ``README.md``.
 
 ## Entry points
 
-Two primary entry points:
+Primary entry points:
 
 - ``harness.eval.benchmark_suite.BenchmarkSuite`` — benchmark
   evaluation across modes. Use this for running benchmarks
   programmatically.
-- ``harness.orchestrator.BioMedArena`` — higher-level
-  orchestrator used by ``BenchmarkSuite``. Exposes the multi-adapter
-  framework for non-evaluation production use.
+- ``harness.cli`` / ``biomedarena`` — public command-line interface
+  for single cells, benchmark listing, model listing, and mode listing.
+- ``harness.eval.bench_*`` loaders — benchmark-specific loaders that
+  normalize upstream datasets into the common task shape.
 
 ---
 
@@ -22,7 +23,7 @@ Two primary entry points:
 ```python
 from harness.eval.benchmark_suite import BenchmarkSuite
 
-suite = BenchmarkSuite(config_path="config_claude.yaml")
+suite = BenchmarkSuite(config_path="config.yaml")
 ```
 
 ### Constructor
@@ -134,22 +135,31 @@ task dict conforms to the shape documented in ``eval_tasks`` above.
 
 | Loader | Module |
 |---|---|
-| `load_medcalc_tasks` | `harness.eval.bench_medcalc` |
-| `load_medxpertqa_tasks` | `harness.eval.bench_medxpertqa` |
-| `load_medxpertqa_mm_tasks` | `harness.eval.bench_medxpertqa_mm` |
-| `load_labbench_tasks` | `harness.eval.bench_labbench` |
-| `load_labbench2_tasks` | `harness.eval.bench_labbench2` |
-| `load_bioasq_tasks` | `harness.eval.bench_bioasq` |
-| `load_gpqa_bio_tasks` | `harness.eval.bench_gpqa_bio` |
-| `load_hle_gold_tasks` | `harness.eval.bench_hle_gold` |
-| `load_pathvqa_tasks` | `harness.eval.bench_pathvqa` |
+| `load_aa_lcr_tasks` | `harness.eval.bench_aa_lcr` |
 | `load_agentclinic_tasks` | `harness.eval.bench_agentclinic` |
-| `load_medagentbench_tasks` | `harness.eval.bench_medagentbench` |
+| `load_bioasq_tasks` | `harness.eval.bench_bioasq` |
+| `load_bioprobench_tasks` | `harness.eval.bench_bioprobench` |
 | `load_bixbench_tasks` | `harness.eval.bench_bixbench` |
 | `load_genotex_tasks` | `harness.eval.bench_genotex` |
-| `load_rag_essential_tasks` | `harness.eval.bench_rag_essential` |
-| `load_medical_qa_tasks` | `harness.eval.bench_medical_qa` (`medqa`, `medmcqa`, `pubmedqa`) |
+| `load_gpqa_bio_tasks` | `harness.eval.bench_gpqa_bio` |
+| `load_healthbench_tasks` | `harness.eval.bench_healthbench` |
 | `load_hf_benchmark_tasks` | `harness.eval.bench_hf_benchmark` (`hf_*` registry entries) |
+| `load_hle_gold_tasks` | `harness.eval.bench_hle_gold` |
+| `load_labbench_tasks` | `harness.eval.bench_labbench` |
+| `load_labbench2_tasks` | `harness.eval.bench_labbench2` |
+| `load_medagentbench_tasks` | `harness.eval.bench_medagentbench` |
+| `load_medcalc_tasks` | `harness.eval.bench_medcalc` |
+| `load_medhelm_tasks` | `harness.eval.bench_medhelm` |
+| `load_medical_qa_tasks` | `harness.eval.bench_medical_qa` (`medqa`, `medmcqa`, `pubmedqa`, and compatibility aliases) |
+| `load_medxpertqa_tasks` | `harness.eval.bench_medxpertqa` |
+| `load_medxpertqa_mm_tasks` | `harness.eval.bench_medxpertqa_mm` |
+| `load_mmlu_tasks` | `harness.eval.bench_mmlu` |
+| `load_pathvqa_tasks` | `harness.eval.bench_pathvqa` |
+| `load_quick_suite_tasks` | `harness.eval.bench_quick_suite` |
+| `load_rag_essential_tasks` | `harness.eval.bench_rag_essential` |
+| `load_super_chemistry_tasks` | `harness.eval.bench_super_chemistry` |
+| `load_superchem_tasks` | `harness.eval.bench_superchem` |
+| `load_supergpqa_tasks` | `harness.eval.bench_supergpqa` |
 
 Common kwargs: ``limit`` (max tasks), ``seed`` (for deterministic
 sampling), benchmark-specific filters (e.g. ``subsets`` for LAB-Bench
@@ -205,19 +215,19 @@ filtered = filter_tools("medcalc", TOOL_SPECS)
 
 ---
 
-## `BioMedArena`
+## Command-line entry point
 
-```python
-from harness.orchestrator import BioMedArena
+The installed console script is ``biomedarena``:
 
-harness = BioMedArena(config_path="config.yaml")
+```bash
+biomedarena list-benchmarks
+biomedarena list-backbones
+biomedarena list-modes
+biomedarena run --benchmark medcalc --backbone gemini-2.5-flash --limit 5
 ```
 
-The orchestrator loads adapters declared in the config file's
-``adapters:`` block and exposes a unified async entry point that the
-``BenchmarkSuite`` uses internally. For benchmark evaluation, prefer
-``BenchmarkSuite``; for production orchestration of multiple
-adapters, use ``BioMedArena`` directly.
+The CLI dispatches through ``harness.cli.main`` and writes optional
+per-task JSON summaries with ``--output``.
 
 ---
 

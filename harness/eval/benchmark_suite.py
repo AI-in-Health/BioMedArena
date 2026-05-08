@@ -150,7 +150,7 @@ class BenchmarkSuite:
                 # 2-tier scoring: primary first, judge as fallback
                 # (MCQ) or primary (open-ended). Falls back to the
                 # deterministic ``score_question`` when the judge is
-                # disabled via ``BIOAGENT_LLM_JUDGE=0``.
+                # disabled via ``BIOMEDARENA_LLM_JUDGE=0``.
                 from harness.eval.llm_judge import score_with_fallback
                 from harness.trace import get_active_trace as _get_tr
                 target_backbone = (self._config.get("llm", {}) or {}).get("model")
@@ -238,7 +238,7 @@ class BenchmarkSuite:
     # ------------------------------------------------------------------
 
     # ------------------------------------------------------------------
-    # simple_llm / deep_think purity contract
+    # simple_llm / deep_think mode relationship
     # ------------------------------------------------------------------
     #
     # deep_think is intentionally identical to simple_llm except that it

@@ -2,7 +2,7 @@
 
 The entries here are intentionally data-only. They are expanded into CLI
 benchmark registrations and handled by ``bench_hf_benchmark``. Keep keys
-stable and ASCII; they become public ``bioagent --benchmark`` names.
+stable and ASCII; they become public ``biomedarena --benchmark`` names.
 """
 from __future__ import annotations
 

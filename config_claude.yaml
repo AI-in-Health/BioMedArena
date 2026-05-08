@@ -1,7 +1,9 @@
 llm:
   provider: anthropic
-  # Use the latest Sonnet by default. Opus is stronger but ~5x the cost.
-  # Options: claude-sonnet-4-5, claude-opus-4-5, claude-sonnet-4-6 (Nov 2025)
+  # Use Sonnet by default. Opus is stronger but higher cost.
+  # Current CLI options include:
+  # claude-sonnet-4, claude-sonnet-4-5, claude-sonnet-4-6,
+  # claude-opus-4-5, claude-opus-4-6.
   model: claude-sonnet-4-5
   api_key: ${ANTHROPIC_API_KEY}
 

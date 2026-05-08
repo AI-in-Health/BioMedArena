@@ -1,5 +1,7 @@
 llm:
   provider: gemini
+  # Current CLI options include gemini-2.5-flash, gemini-2.5-pro,
+  # and gemini-3-flash-preview.
   model: gemini-2.5-flash
   api_key: ${GEMINI_API_KEY}
 

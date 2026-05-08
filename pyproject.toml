@@ -62,7 +62,7 @@ all-tools = [
 ]
 
 [project.scripts]
-bioagent = "harness.cli:main"
+biomedarena = "harness.cli:main"
 
 [project.urls]
 Repository = "https://github.com/AI-in-Health/BioMedArena"

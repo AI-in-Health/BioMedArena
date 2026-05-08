@@ -1,7 +1,7 @@
 """Command-line interface for BioMedArena.
 
-Entry point is exposed as ``bioagent`` via ``pyproject.toml``
-``[project.scripts]``. Run ``bioagent --help`` for usage.
+Entry point is exposed as ``biomedarena`` via ``pyproject.toml``
+``[project.scripts]``. Run ``biomedarena --help`` for usage.
 """
 from __future__ import annotations
 
@@ -253,9 +253,9 @@ def _ensure_env() -> None:
     preserved = {
         key: os.environ.get(key)
         for key in (
-            "BIOAGENT_JUDGE_PROVIDER",
-            "BIOAGENT_JUDGE_MODEL",
-            "BIOAGENT_LLM_JUDGE",
+            "BIOMEDARENA_JUDGE_PROVIDER",
+            "BIOMEDARENA_JUDGE_MODEL",
+            "BIOMEDARENA_LLM_JUDGE",
         )
         if os.environ.get(key) is not None
     }
@@ -263,7 +263,7 @@ def _ensure_env() -> None:
         Path.cwd() / ".env",
         Path(__file__).resolve().parent.parent / ".env",
     ]
-    extra_env_file = os.environ.get("BIOAGENT_ENV_FILE")
+    extra_env_file = os.environ.get("BIOMEDARENA_ENV_FILE")
     if extra_env_file:
         candidates.insert(0, Path(extra_env_file).expanduser())
     for candidate in candidates:
@@ -283,17 +283,14 @@ def _make_temp_config(
 ) -> Path:
     """Materialize a temp config.yaml with the selected backbone wired in.
 
-    Starts from the repository's ``config.yaml`` (or ``config_claude.yaml``
-    if only the claude-specific base is present) and overwrites the
-    ``llm`` block. Also injects ``function_calling.max_iterations`` and
+    Starts from the repository's ``config.yaml`` and overwrites the ``llm``
+    block. Also injects ``function_calling.max_iterations`` and
     ``function_calling.min_iterations`` when provided via CLI.
     """
     import yaml
 
     meta = BACKBONES[backbone]
     base_path = Path("config.yaml")
-    if not base_path.exists():
-        base_path = Path("config_claude.yaml")
     base = yaml.safe_load(base_path.read_text()) if base_path.exists() else {}
 
     base["llm"] = {
@@ -310,7 +307,7 @@ def _make_temp_config(
         if min_iterations is not None:
             fc["min_iterations"] = min_iterations
 
-    tmp = Path(f"/tmp/bioagent_cfg_{backbone}.yaml")
+    tmp = Path(f"/tmp/biomedarena_cfg_{backbone}.yaml")
     tmp.write_text(yaml.safe_dump(base))
     return tmp
 
@@ -422,18 +419,18 @@ async def _run_once(
     _ensure_env()
     if benchmark not in BENCHMARKS:
         print(f"ERROR: unknown benchmark {benchmark!r}. "
-              f"Use `bioagent list-benchmarks` to see options.",
+              f"Use `biomedarena list-benchmarks` to see options.",
               file=sys.stderr)
         return 2
     if backbone not in BACKBONES:
         print(f"ERROR: unknown backbone {backbone!r}. "
-              f"Use `bioagent list-backbones` to see options.",
+              f"Use `biomedarena list-backbones` to see options.",
               file=sys.stderr)
         return 2
     valid_modes = {m for m, _ in MODES}
     if mode not in valid_modes and not mode.startswith("self_consistency:"):
         print(f"ERROR: unknown mode {mode!r}. "
-              f"Use `bioagent list-modes` to see options.",
+              f"Use `biomedarena list-modes` to see options.",
               file=sys.stderr)
         return 2
 
@@ -453,7 +450,7 @@ async def _run_once(
 
     # Configure web tools mode via environment variable so
     # FunctionCallingRunner and BenchmarkSuite can read it.
-    os.environ["BIOAGENT_WEB_TOOLS"] = web_tools
+    os.environ["BIOMEDARENA_WEB_TOOLS"] = web_tools
 
     from harness.eval.benchmark_suite import BenchmarkSuite
 
@@ -718,7 +715,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="bioagent",
+        prog="biomedarena",
         description="BioMedArena — evaluate LLM agents on biomedical benchmarks.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -735,9 +732,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     run = sub.add_parser("run", help="Evaluate one benchmark x backbone x mode cell.")
     run.add_argument("--benchmark", required=True,
-                     help="Benchmark name. See `bioagent list-benchmarks`.")
+                     help="Benchmark name. See `biomedarena list-benchmarks`.")
     run.add_argument("--backbone", required=True,
-                     help="LLM backbone. See `bioagent list-backbones`.")
+                     help="LLM backbone. See `biomedarena list-backbones`.")
     run.add_argument("--mode", default="heavy",
                      help="Harness mode. Default: heavy.")
     run.add_argument("--limit", type=int, default=10,
