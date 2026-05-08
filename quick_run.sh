@@ -63,7 +63,7 @@ mkdir -p "$OUTDIR"
 # ----------------------------- Common flags ---------------------------------
 
 COMMON=(
-    bioagent run
+    biomedarena run
     --benchmark "$BENCHMARK"
     --backbone "$BACKBONE"
     --limit "$LIMIT"
@@ -234,5 +234,5 @@ echo ""
 echo "Results:"
 ls -lh "$OUTDIR"/s*.json 2>/dev/null || echo "  (no results yet)"
 echo ""
-echo "To compile results:  python compile_results.py"
+echo "Per-setting JSON files are written under: ${OUTDIR}/"
 echo "To view one result:  python -m json.tool ${OUTDIR}/s1_thinking_baseline.json | head -20"

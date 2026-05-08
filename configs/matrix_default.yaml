@@ -1,6 +1,8 @@
-# Default benchmark matrix.
-# Iterates over (backbone × mode × benchmark) cells. Override by editing
-# this file or by passing --config to scripts/run_matrix.py.
+# Default starter benchmark matrix.
+# Iterates over (backbone × mode × benchmark) cells. This intentionally uses
+# a small provider-spanning subset of registered backbones for quick release
+# checks; run `biomedarena list-backbones` for the complete CLI registry.
+# Override by editing this file or by passing --config to scripts/run_matrix.py.
 
 backbones:
   - id: claude

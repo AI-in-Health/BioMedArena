@@ -263,19 +263,18 @@ optional domain-specific keys such as NCBI, OMIM, Serper, and Jina.
 List available resources:
 
 ```bash
-bioagent list-benchmarks
-bioagent list-backbones
-bioagent list-modes
+biomedarena list-benchmarks
+biomedarena list-backbones
+biomedarena list-modes
 ```
 
-The package name is `biomedarena`; the command-line entry point remains
-`bioagent` for compatibility. Environment variables use the `BIOAGENT_`
-prefix for the same reason.
+The package name and command-line entry point are both `biomedarena`.
+Environment variables use the `BIOMEDARENA_` prefix.
 
 Run one benchmark cell:
 
 ```bash
-bioagent run \
+biomedarena run \
   --benchmark medcalc \
   --backbone gemini-2.5-flash \
   --tools biomed --reasoning-mode light \
@@ -291,6 +290,9 @@ python3 scripts/run_matrix.py \
   --only medcalc,gemini,simple_llm \
   --limit-override 1
 ```
+
+For the 7-setting quick-start experiment suite used to compare thinking,
+domain tools, web search, and combined tool use, see [`quick_run.sh`](quick_run.sh).
 
 Check official source accessibility before spending model budget:
 
@@ -339,6 +341,9 @@ the benchmark and tool inventories before running sensitive workloads.
 python3 scripts/run_quick_suite.py
 python3 scripts/release_gate.py --strict
 python3 -m pytest tests/unit -q
+HF_HOME=/tmp/biomedarena_hf_empty \
+HF_DATASETS_CACHE=/tmp/biomedarena_hf_datasets_empty \
+HF_TOKEN= HUGGING_FACE_HUB_TOKEN= HUGGINGFACE_HUB_TOKEN= \
 python3 -m pytest tests/smoke -q -m "not slow"
 ```
 

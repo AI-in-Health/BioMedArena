@@ -80,7 +80,7 @@ def _iso_now() -> str:
 
 
 _ACTIVE_TRACE: contextvars.ContextVar["TraceRecorder | None"] = (
-    contextvars.ContextVar("bioagent_active_trace", default=None)
+    contextvars.ContextVar("biomedarena_active_trace", default=None)
 )
 
 

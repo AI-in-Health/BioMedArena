@@ -5,7 +5,7 @@ This file documents the public tool surface exposed through `TOOL_SPECS` and the
 - Native tool schemas: **75**
 - Tool categories: **33**
 - Ported OpenAI life-science skills: **39**
-- Web tools are controlled by `BIOAGENT_WEB_TOOLS=off|combined|only`; default public count with web tools enabled is 75.
+- Web tools are controlled by `BIOMEDARENA_WEB_TOOLS=off|combined|only`; default public count with web tools enabled is 75.
 
 ## Security Notes
 

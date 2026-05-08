@@ -3,7 +3,7 @@
 When string-matching scoring is too strict (open-ended answers, paraphrases,
 code-describing-code), use an LLM to evaluate semantic equivalence.
 
-Default judge model: claude-sonnet-4-5, but configurable via BIOAGENT_JUDGE_MODEL.
+Default judge model: claude-sonnet-4-5, but configurable via BIOMEDARENA_JUDGE_MODEL.
 Judgments are cached on (question_id, predicted_hash) to avoid re-evaluation.
 """
 
@@ -245,10 +245,10 @@ def _judge_provider_and_key() -> tuple[str, str | None]:
     """Pick provider and api_key for the judge.
 
     Defaults to Claude/Anthropic unless the run pins a different judge with
-    ``BIOAGENT_JUDGE_PROVIDER`` and ``BIOAGENT_JUDGE_MODEL``.
+    ``BIOMEDARENA_JUDGE_PROVIDER`` and ``BIOMEDARENA_JUDGE_MODEL``.
     """
     import os
-    provider_override = os.environ.get("BIOAGENT_JUDGE_PROVIDER", "").strip().lower()
+    provider_override = os.environ.get("BIOMEDARENA_JUDGE_PROVIDER", "").strip().lower()
     if provider_override == "gemini":
         return "gemini", os.environ.get("GEMINI_API_KEY")
     if provider_override == "anthropic":
@@ -326,13 +326,13 @@ def pick_judge_model(target_backbone: str = "") -> str:
     unused.
     """
     import os
-    return os.environ.get("BIOAGENT_JUDGE_MODEL", DEFAULT_JUDGE_MODEL).strip() or DEFAULT_JUDGE_MODEL
+    return os.environ.get("BIOMEDARENA_JUDGE_MODEL", DEFAULT_JUDGE_MODEL).strip() or DEFAULT_JUDGE_MODEL
 
 
 def judge_enabled() -> bool:
-    """Return True unless ``BIOAGENT_LLM_JUDGE=0`` is set."""
+    """Return True unless ``BIOMEDARENA_LLM_JUDGE=0`` is set."""
     import os
-    return os.environ.get("BIOAGENT_LLM_JUDGE", "1") != "0"
+    return os.environ.get("BIOMEDARENA_LLM_JUDGE", "1") != "0"
 
 
 def _get_judge_for(target_backbone: str | None) -> LLMJudge:

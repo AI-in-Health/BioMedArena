@@ -46,9 +46,9 @@ def test_open_answer_types_set():
     assert "freetext" in OPEN_ANSWER_TYPES
 
 
-def test_pick_judge_model_always_claude(monkeypatch):
-    """Judge model is always claude-sonnet-4-5 regardless of target."""
-    monkeypatch.delenv("BIOAGENT_JUDGE_MODEL", raising=False)
+def test_pick_judge_model_defaults_to_claude(monkeypatch):
+    """Judge model defaults to claude-sonnet-4-5 regardless of target."""
+    monkeypatch.delenv("BIOMEDARENA_JUDGE_MODEL", raising=False)
     for target in [
         "gemini-2.5-flash",
         "claude-sonnet-4-5",
@@ -64,29 +64,29 @@ def test_pick_judge_model_always_claude(monkeypatch):
 
 def test_pick_judge_model_default_arg(monkeypatch):
     """``pick_judge_model`` works with no argument (default empty string)."""
-    monkeypatch.delenv("BIOAGENT_JUDGE_MODEL", raising=False)
+    monkeypatch.delenv("BIOMEDARENA_JUDGE_MODEL", raising=False)
     assert pick_judge_model() == "claude-sonnet-4-5"
 
 
 def test_pick_judge_model_env_override(monkeypatch):
     """Judge model can be pinned per run for comparable rejudging."""
-    monkeypatch.setenv("BIOAGENT_JUDGE_MODEL", "gemini-2.5-flash")
+    monkeypatch.setenv("BIOMEDARENA_JUDGE_MODEL", "gemini-2.5-flash")
     assert pick_judge_model("gpt-4o") == "gemini-2.5-flash"
 
 
 def test_judge_enabled_default():
-    old = os.environ.pop("BIOAGENT_LLM_JUDGE", None)
+    old = os.environ.pop("BIOMEDARENA_LLM_JUDGE", None)
     try:
         assert judge_enabled() is True
-        os.environ["BIOAGENT_LLM_JUDGE"] = "1"
+        os.environ["BIOMEDARENA_LLM_JUDGE"] = "1"
         assert judge_enabled() is True
-        os.environ["BIOAGENT_LLM_JUDGE"] = "0"
+        os.environ["BIOMEDARENA_LLM_JUDGE"] = "0"
         assert judge_enabled() is False
     finally:
         if old is None:
-            os.environ.pop("BIOAGENT_LLM_JUDGE", None)
+            os.environ.pop("BIOMEDARENA_LLM_JUDGE", None)
         else:
-            os.environ["BIOAGENT_LLM_JUDGE"] = old
+            os.environ["BIOMEDARENA_LLM_JUDGE"] = old
 
 
 # ---------------------------------------------------------------------------
@@ -220,8 +220,8 @@ async def test_empty_candidate_skips_judge():
 
 @pytest.mark.asyncio
 async def test_judge_disabled_env_var():
-    old = os.environ.get("BIOAGENT_LLM_JUDGE")
-    os.environ["BIOAGENT_LLM_JUDGE"] = "0"
+    old = os.environ.get("BIOMEDARENA_LLM_JUDGE")
+    os.environ["BIOMEDARENA_LLM_JUDGE"] = "0"
     try:
         fake = _FakeJudge(verdict=True)
         with patch.object(J, "_get_judge_for", return_value=fake):
@@ -236,6 +236,6 @@ async def test_judge_disabled_env_var():
         assert result["details"]["judge_invoked"] is False
     finally:
         if old is None:
-            os.environ.pop("BIOAGENT_LLM_JUDGE", None)
+            os.environ.pop("BIOMEDARENA_LLM_JUDGE", None)
         else:
-            os.environ["BIOAGENT_LLM_JUDGE"] = old
+            os.environ["BIOMEDARENA_LLM_JUDGE"] = old

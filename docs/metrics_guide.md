@@ -19,7 +19,7 @@ collected, and how every column in the 22-field results CSV is computed.
 ### Single cell via the CLI
 
 ```bash
-bioagent run \
+biomedarena run \
     --benchmark medcalc \
     --backbone claude-sonnet-4-6 \
     --mode deep_think \
@@ -72,10 +72,11 @@ timeout:
 base_config: config.yaml
 ```
 
-Run:
+Save the example as `configs/custom_matrix.yaml`, or use the checked-in
+starter matrix directly:
 
 ```bash
-python scripts/run_matrix.py --config configs/custom_matrix.yaml
+python3 scripts/run_matrix.py --config configs/matrix_default.yaml
 ```
 
 ### Runner flags
@@ -229,28 +230,13 @@ Applies to: `answer_type` ∈ `{openText, openEnded, freeText}`.
 2. LLM judge is invoked as the **primary scorer**.
 3. Judge verdict is authoritative: `method = llm_judge_primary(<model>)`.
 
-### Benchmark routing
-
-| Benchmark | answer_type | Route |
-|---|---|---|
-| medcalc | exactNumeric / numeric | A (fallback) |
-| medxpertqa | multipleChoice | A (fallback) |
-| labbench, labbench2 | multipleChoice / regex | A (fallback) |
-| gpqa_bio | multipleChoice | A (fallback) |
-| hle_gold | multipleChoice (or openText per task) | per-task routing |
-| medagentbench | numeric | A (fallback) |
-| agentclinic | openText | B (primary) |
-| bioasq | keyword | A (fallback) |
-| pathvqa | keyword | A (fallback) |
-| medqa, medmcqa, pubmedqa, mmlu | multipleChoice | A (fallback) |
-
-Tasks with no explicit `answer_type` default to Route A.
-
 ### Judge model
 
-Always `claude-sonnet-4-5`, regardless of the backbone being
-evaluated. Using a single consistent judge keeps cross-run comparisons
-stable and removes target-dependent variability.
+The judge model is configurable per run. By default, BioMedArena uses
+`claude-sonnet-4-5`, but users can pin another supported judge with
+`BIOMEDARENA_JUDGE_PROVIDER` and `BIOMEDARENA_JUDGE_MODEL`. Using a
+single configured judge across a run keeps cross-run comparisons stable
+and removes target-dependent variability.
 
 Cost implication: judge calls are more expensive than the previous
 dynamic policy (~10x per judge call). The judge is only invoked
@@ -263,10 +249,15 @@ spend.
 
 ```bash
 # Default: judge is ENABLED
-python scripts/run_matrix.py --config configs/custom_matrix.yaml
+python3 scripts/run_matrix.py --config configs/matrix_default.yaml
+
+# Optional: pin a custom judge model for the whole run
+BIOMEDARENA_JUDGE_PROVIDER=gemini \
+BIOMEDARENA_JUDGE_MODEL=gemini-3-flash-preview \
+python3 scripts/run_matrix.py --config configs/matrix_default.yaml
 
 # Disable globally
-BIOAGENT_LLM_JUDGE=0 python scripts/run_matrix.py --config configs/custom_matrix.yaml
+BIOMEDARENA_LLM_JUDGE=0 python3 scripts/run_matrix.py --config configs/matrix_default.yaml
 ```
 
 Every trace records `scorer_result.details.judge_invoked` and
@@ -294,8 +285,12 @@ failure never aborts a benchmark run.
 | gpt-4o | OpenAI | General OpenAI chat model |
 | gemini-2.5-flash | Google | Low-cost Google model |
 | gemini-2.5-pro | Google | |
+| gemini-3-flash-preview | Google | Current Gemini Flash preview |
 
-List at runtime: `bioagent list-backbones`.
+List at runtime: `biomedarena list-backbones`. The built-in CLI
+registry currently covers API-backed provider models; local open-source
+or self-hosted models should be added through a provider adapter before
+they appear in this list.
 
 ### Modes
 
@@ -310,25 +305,4 @@ List at runtime: `bioagent list-backbones`.
 voting (N samples, configurable via config YAML). Enable via CLI with
 `--self-consistency`.
 
-List at runtime: `bioagent list-modes`.
-
-### deep_think purity contract
-
-`deep_think` is intentionally identical to `simple_llm` in every
-respect *except* that the provider's native reasoning budget is
-enabled. Enforced by `tests/unit/test_modes_purity.py`:
-
-- Same system prompt and same user prompt (no "think step by step"
-  nudge at the prompt layer; the model's native thinking handles that)
-- Zero tool schemas advertised
-- No ReAct loop, no tool retrieval
-- Exactly one LLM call per task
-- Token output includes the model's internal thinking trace, counted
-  in `output_tokens`
-
-Provider-level reasoning (transparent to the user):
-
-- Anthropic Claude 4.5+: `thinking={type: enabled, budget_tokens: N}`
-- OpenAI o-series (`o1/o3/o4-mini`): `max_completion_tokens` + `developer` role for system
-- OpenAI gpt-5.x: `reasoning_effort="high"` with graceful fallback
-- Google Gemini 2.5+: `ThinkingConfig(thinking_budget=N)`
+List at runtime: `biomedarena list-modes`.
