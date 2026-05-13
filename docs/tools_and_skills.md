@@ -2,10 +2,10 @@
 
 This file documents the public tool surface exposed through `TOOL_SPECS` and the ported life-science skills that back many `olsp_*` tools.
 
-- Native tool schemas: **75**
+- Native tool schemas: **76**
 - Tool categories: **33**
 - Ported OpenAI life-science skills: **39**
-- Web tools are controlled by `BIOMEDARENA_WEB_TOOLS=off|combined|only`; default public count with web tools enabled is 75.
+- Web tools are controlled by `BIOMEDARENA_WEB_TOOLS=off|combined|only`; default public count with web tools enabled is 76.
 
 ## Security Notes
 
@@ -22,11 +22,11 @@ External retrieval tools may send query text to third-party APIs or public datab
 | `cancer` | 2 | `olsp_cbioportal_request`, `olsp_civic_graphql` |
 | `chemistry` | 11 | `mol_descriptors`, `mol_fingerprint`, `mol_from_smiles`, `mol_similarity`, `mol_substructure_match`, `olsp_bindingdb_ligands`, `olsp_chebi_lookup`, `olsp_rhea_request`, `tdc_admet_lookup`, `tdc_load_dataset_sample`, `tdc_molecule_generation_sample` |
 | `clinical` | 10 | `clinvar_lookup`, `compute_calculator`, `dailymed_label`, `medlineplus_topic`, `olsp_ncbi_clinicaltables`, `omim_lookup`, `openfda_adverse`, `orphanet_lookup`, `pubmed_search`, `rxnav_drug` |
-| `code` | 2 | `code_search`, `python_exec` |
+| `code` | 3 | `bixbench_sandbox_exec`, `code_search`, `python_exec` |
 | `drug` | 10 | `dailymed_label`, `mol_descriptors`, `olsp_bindingdb_ligands`, `olsp_opentargets_graphql`, `olsp_pharmgkb_lookup`, `openfda_adverse`, `rxnav_drug`, `tdc_admet_lookup`, `tdc_load_dataset_sample`, `tdc_molecule_generation_sample` |
-| `gene_expression` | 6 | `olsp_bgee_sparql`, `olsp_encode_request`, `olsp_eqtl_catalogue_request`, `olsp_gtex_eqtl`, `olsp_human_protein_atlas`, `olsp_rnacentral_request` |
+| `gene_expression` | 7 | `bixbench_sandbox_exec`, `olsp_bgee_sparql`, `olsp_encode_request`, `olsp_eqtl_catalogue_request`, `olsp_gtex_eqtl`, `olsp_human_protein_atlas`, `olsp_rnacentral_request` |
 | `genetics` | 23 | `clinvar_lookup`, `gene_lookup`, `gget_info`, `gget_search`, `gget_seq`, `mygene_query`, `olsp_biobankjapan_phewas`, `olsp_cbioportal_request`, `olsp_civic_graphql`, `olsp_epigraphdb_request`, `olsp_eqtl_catalogue_request`, `olsp_eva_request`, `olsp_finngen_phewas`, `olsp_genebass_gene_burden`, `olsp_gnomad_graphql`, `olsp_gtex_eqtl`, `olsp_gwas_catalog_request`, `olsp_locus_to_gene_mapper`, `olsp_ncbi_blast`, `olsp_ncbi_datasets`, `olsp_tpmi_phewas`, `olsp_ukb_topmed_phewas`, `omim_lookup` |
-| `genomics` | 2 | `olsp_biostudies_request`, `olsp_ncbi_datasets` |
+| `genomics` | 3 | `bixbench_sandbox_exec`, `olsp_biostudies_request`, `olsp_ncbi_datasets` |
 | `gwas` | 8 | `olsp_biobankjapan_phewas`, `olsp_epigraphdb_request`, `olsp_finngen_phewas`, `olsp_genebass_gene_burden`, `olsp_gwas_catalog_request`, `olsp_locus_to_gene_mapper`, `olsp_tpmi_phewas`, `olsp_ukb_topmed_phewas` |
 | `imaging` | 2 | `dicom_pixel_stats`, `read_dicom_metadata` |
 | `immunology` | 1 | `olsp_ipd_request` |
@@ -56,6 +56,7 @@ External retrieval tools may send query text to third-party APIs or public datab
 | Tool | Categories | Function | Implementation path |
 | --- | --- | --- | --- |
 | `alphafold_db_lookup` | `protein`, `structure` | Fetch AlphaFold-DB prediction metadata for a UniProt accession: pLDDT mean, sequence length, organism, PDB/CIF download URLs, model version. Returns None (ok=false) if the UniProt ID is not in AF-DB. | `harness/tools/protein_tools.py` |
+| `bixbench_sandbox_exec` | `code`, `genomics`, `gene_expression` | Execute Python, R, or bash commands against a mounted BixBench data capsule. In Docker mode the capsule is read-only at `/capsule` and `/work` is writable; local mode is only for debugging trusted data. Use this for official capsule-backed BixBench data analysis instead of guessing from memory. | `harness/eval/function_calling_runner.py; harness/eval/bixbench_official.py` |
 | `calculator_eval` | `calculation` | Evaluate a mathematical formula. Use when the formula is known but no built-in calculator matches. Example: '(140-87)*48*1/(1.4*72)'. | `harness/eval/function_calling_runner.py` |
 | `clinvar_lookup` | `genetics`, `variant`, `clinical` | Look up a genetic variant's clinical significance in ClinVar. | `harness/eval/function_calling_runner.py` |
 | `code_search` | `code`, `search` | Search a code corpus for symbol/string matches. Useful for questions about specific functions or classes in known repositories. Returns matching file paths and surrounding context. Currently performs a web/PubMed-style fallback search since no local repo index exists. | `harness/eval/function_calling_runner.py` |

@@ -211,6 +211,28 @@ TOOL_SPECS: list[dict[str, Any]] = [
     {
         "type": "function",
         "function": {
+            "name": "bixbench_sandbox_exec",
+            "description": (
+                "BixBench only. Execute Python, R, or bash analysis commands against "
+                "the task's mounted official data capsule. In Docker mode the capsule "
+                "is read-only at /capsule and /work is writable. Use this for "
+                "capsule-backed BixBench data analysis instead of guessing from memory."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "description": "Shell command to run, e.g. `python3 - <<'PY' ... PY`, `Rscript script.R`, or `ls -R /capsule | head`.",
+                    },
+                },
+                "required": ["command"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "code_search",
             "description": (
                 "Search a code corpus for symbol/string matches. Useful for "
@@ -671,6 +693,7 @@ class FunctionCallingRunner:
         self.last_retrieval_log: dict[str, Any] | None = None
         # Exposed after run() for summarizer access (multi-agent mode)
         self._last_messages: list[dict[str, Any]] | None = None
+        self._current_task: dict[str, Any] | None = None
         # Context management (CM_* env vars)
         self._context_manager = None
         try:
@@ -790,6 +813,8 @@ class FunctionCallingRunner:
                 return f"[eval error: {exc}]"
         if name == "python_exec":
             return await self._run_python_exec(args.get("code", ""))
+        if name == "bixbench_sandbox_exec":
+            return await self._run_bixbench_sandbox(args.get("command", ""))
         if name == "code_search":
             return await self._run_code_search(
                 args.get("symbol_or_string", ""), args.get("repo", "")
@@ -906,6 +931,60 @@ class FunctionCallingRunner:
         except Exception as exc:
             return f"[python_exec dispatch error: {exc}]"
 
+    async def _run_bixbench_sandbox(self, command: str) -> str:
+        """Run a BixBench capsule command through the configured sandbox."""
+        import os as _os
+
+        if not str(command or "").strip():
+            return "[tool error: bixbench_sandbox_exec empty command]"
+        task = self._current_task or {}
+        ctx = task.get("context") or {}
+        capsule_path = ctx.get("capsule_path")
+        if not capsule_path:
+            return (
+                "[tool error: bixbench_sandbox_exec missing capsule_path. "
+                "Run `biomedarena prepare-bixbench --extract` and pass "
+                "`--bixbench-capsules`.]"
+            )
+        backend = _os.environ.get("BIOMEDARENA_BIXBENCH_SANDBOX", "docker").strip() or "docker"
+        try:
+            from harness.eval.bixbench_official import (
+                BixBenchSandbox,
+                BixBenchSandboxConfig,
+                resolve_docker_command,
+            )
+            docker_cmd = resolve_docker_command() if backend == "docker" else None
+            if backend == "docker" and docker_cmd is None:
+                return (
+                    "[tool error: bixbench_sandbox_exec docker command not found. "
+                    "Install Docker and build `biomedarena/bixbench-sandbox:latest`, "
+                    "or explicitly opt into the unsafe local backend only for trusted debugging.]"
+                )
+            cfg = BixBenchSandboxConfig(
+                backend=backend,
+                image=_os.environ.get(
+                    "BIOMEDARENA_BIXBENCH_DOCKER_IMAGE",
+                    "biomedarena/bixbench-sandbox:latest",
+                ),
+                docker_cmd=docker_cmd,
+                timeout_s=int(_os.environ.get("BIOMEDARENA_BIXBENCH_TIMEOUT_S", "900")),
+                allow_local=_os.environ.get("BIOMEDARENA_BIXBENCH_ALLOW_LOCAL", "0") == "1",
+            )
+            result = await asyncio.to_thread(
+                BixBenchSandbox(cfg).run,
+                capsule_path,
+                str(command),
+            )
+            payload = {
+                "returncode": result.returncode,
+                "backend": result.backend,
+                "stdout": result.stdout[:8000],
+                "stderr": result.stderr[:2000],
+            }
+            return json.dumps(payload)
+        except Exception as exc:
+            return f"[bixbench_sandbox_exec error: {type(exc).__name__}: {exc}]"
+
     async def _run_code_search(self, query: str, repo: str = "") -> str:
         """Code/symbol search. Without a local repo index, falls back to PubMed-like
         web search via NCBI as a placeholder. Returns descriptive text."""
@@ -930,6 +1009,7 @@ class FunctionCallingRunner:
 
         Returns: (final_text_answer, list_of_tool_names_called)
         """
+        self._current_task = task
         # H1 fix: rebuild context manager per task to avoid cross-task state
         # leak (ScratchpadStrategy._scratchpad, IncrementalSummaryStrategy
         # counters, etc.) when the runner is cached across tasks.
@@ -1127,17 +1207,20 @@ class FunctionCallingRunner:
                 return content or "", tools_called
 
             # Append assistant message with tool calls
+            _assistant_tool_calls: list[dict[str, Any]] = []
+            for tc in tool_calls:
+                tc_msg = {
+                    "id": tc["id"],
+                    "type": "function",
+                    "function": {"name": tc["name"], "arguments": tc["arguments"]},
+                }
+                if tc.get("extra_content"):
+                    tc_msg["extra_content"] = tc["extra_content"]
+                _assistant_tool_calls.append(tc_msg)
             _assistant_msg: dict[str, Any] = {
                 "role": "assistant",
                 "content": content,
-                "tool_calls": [
-                    {
-                        "id": tc["id"],
-                        "type": "function",
-                        "function": {"name": tc["name"], "arguments": tc["arguments"]},
-                    }
-                    for tc in tool_calls
-                ],
+                "tool_calls": _assistant_tool_calls,
             }
             # Preserve raw blocks (including thinking) for Anthropic fidelity
             if resp.get("_raw_blocks"):

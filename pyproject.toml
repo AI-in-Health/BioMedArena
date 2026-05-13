@@ -73,6 +73,7 @@ packages = ["harness"]
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+pythonpath = ["."]
 markers = [
     "slow: tests that spawn subprocesses, hit live APIs, or require large model downloads",
 ]

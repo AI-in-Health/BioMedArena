@@ -568,6 +568,9 @@ def score_question(predicted: str, expected: str, answer_type: str, context: dic
         return smiles_validity_tanimoto_match(predicted, expected) >= 0.999
     if scorer_kind == "pio_span_f1":
         return token_label_f1(predicted, expected) >= 0.999 or score_exact_match(predicted, expected)
+    if scorer_kind == "bixbench_mcq":
+        from harness.eval.bixbench_official import score_bixbench_mcq
+        return bool(score_bixbench_mcq(predicted, expected).get("correct"))
 
     extracted = extract_answer_from_response(predicted, answer_type)
 

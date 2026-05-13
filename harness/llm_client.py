@@ -758,11 +758,15 @@ class LLMClient:
                 tool_calls = []
                 if msg.tool_calls:
                     for tc in msg.tool_calls:
-                        tool_calls.append({
+                        call = {
                             "id": tc.id,
                             "name": tc.function.name,
                             "arguments": tc.function.arguments,
-                        })
+                        }
+                        extra_content = getattr(tc, "extra_content", None)
+                        if extra_content:
+                            call["extra_content"] = extra_content
+                        tool_calls.append(call)
                 return {"content": msg.content, "tool_calls": tool_calls}
             except Exception as exc:
                 if "429" in str(exc) or "rate" in str(exc).lower():

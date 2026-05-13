@@ -22,7 +22,7 @@ def _tool_name(spec: dict) -> str:
 
 def test_public_registry_counts_meet_release_surface():
     assert len(BENCHMARKS) >= 100
-    assert len(TOOL_SPECS) == 75
+    assert len(TOOL_SPECS) == 76
     assert len(MODES) == 4
     assert len(BACKBONES) >= 3
 

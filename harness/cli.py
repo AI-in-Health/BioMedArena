@@ -313,6 +313,15 @@ def _make_temp_config(
 
 
 def _load_tasks(benchmark: str, limit: int, seed: int) -> list[dict[str, Any]]:
+    return _load_tasks_with_overrides(benchmark, limit, seed, {})
+
+
+def _load_tasks_with_overrides(
+    benchmark: str,
+    limit: int,
+    seed: int,
+    loader_overrides: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
     import importlib
 
     meta = BENCHMARKS[benchmark]
@@ -328,6 +337,7 @@ def _load_tasks(benchmark: str, limit: int, seed: int) -> list[dict[str, Any]]:
     loader = getattr(module, loader_name)
 
     kwargs = dict(meta.get("kwargs") or {})
+    kwargs.update(loader_overrides or {})
     kwargs.setdefault("limit", limit)
     tasks = loader(**kwargs)
 
@@ -415,6 +425,10 @@ async def _run_once(
     resume: bool = False,
     max_iterations: int | None = None, min_iterations: int | None = None,
     enable_thinking: bool | None = None,
+    bixbench_form: str | None = None,
+    bixbench_capsules: bool = False,
+    bixbench_capsule_cache: str = "data/cache/bixbench",
+    bixbench_offline_metadata: bool = False,
 ) -> int:
     _ensure_env()
     if benchmark not in BENCHMARKS:
@@ -458,10 +472,39 @@ async def _run_once(
         backbone,
         max_iterations=max_iterations, min_iterations=min_iterations,
     )
-    tasks = _load_tasks(benchmark, limit=limit, seed=seed)
+    loader_overrides: dict[str, Any] = {}
+    if benchmark == "bixbench":
+        if bixbench_form:
+            loader_overrides["form"] = bixbench_form
+        if bixbench_offline_metadata:
+            loader_overrides["require_online"] = False
+        if bixbench_capsules:
+            loader_overrides["with_capsules"] = True
+            loader_overrides["require_capsules"] = True
+            loader_overrides["capsule_cache_dir"] = bixbench_capsule_cache
+    tasks = _load_tasks_with_overrides(
+        benchmark,
+        limit=limit,
+        seed=seed,
+        loader_overrides=loader_overrides,
+    )
     if not tasks:
         print(f"Loader returned 0 tasks for {benchmark}.")
         return 0
+    if benchmark == "bixbench" and (bixbench_form or "").lower() == "open" and bixbench_capsules:
+        backend = os.environ.get("BIOMEDARENA_BIXBENCH_SANDBOX", "docker").strip() or "docker"
+        if backend == "docker":
+            from harness.eval.bixbench_official import resolve_docker_command
+            if resolve_docker_command() is None:
+                print(
+                    "ERROR: BixBench open-form capsule evaluation requires Docker "
+                    "for the official isolated sandbox, but no Docker executable was found. "
+                    "Install Docker and build `biomedarena/bixbench-sandbox:latest`, "
+                    "or explicitly opt into BIOMEDARENA_BIXBENCH_SANDBOX=local only "
+                    "for trusted debugging.",
+                    file=sys.stderr,
+                )
+                return 3
 
     # --resume: load previous results, split into done / needs_rejudge / aborted
     done_results: list[dict] = []
@@ -705,7 +748,52 @@ def _cmd_run(args: argparse.Namespace) -> int:
         max_iterations=args.max_iterations,
         min_iterations=args.min_iterations,
         enable_thinking=enable_thinking,
+        bixbench_form=args.bixbench_form,
+        bixbench_capsules=args.bixbench_capsules,
+        bixbench_capsule_cache=args.bixbench_capsule_cache,
+        bixbench_offline_metadata=args.bixbench_offline_metadata,
     ))
+
+
+def _cmd_prepare_bixbench(args: argparse.Namespace) -> int:
+    """Download and optionally extract BixBench data capsules."""
+    _ensure_env()
+    from harness.eval.bench_bixbench import load_bixbench_tasks
+    from harness.eval.bixbench_official import BixBenchCapsuleManager
+
+    tasks = load_bixbench_tasks(
+        limit=args.limit,
+        revision=args.revision,
+        require_online=not args.offline_metadata,
+    )
+    if not tasks:
+        print("No BixBench tasks loaded; cannot resolve capsules.", file=sys.stderr)
+        return 1
+    capsules = []
+    seen = set()
+    for task in tasks:
+        meta = task.get("metadata") or {}
+        capsule = meta.get("data_folder") or meta.get("capsule_uuid")
+        if capsule and capsule not in seen:
+            seen.add(capsule)
+            capsules.append(capsule)
+    print(f"Resolved {len(capsules)} unique BixBench capsules from {len(tasks)} tasks.")
+    if args.dry_run:
+        for capsule in capsules[: args.print_limit]:
+            print(capsule)
+        if len(capsules) > args.print_limit:
+            print(f"... {len(capsules) - args.print_limit} more")
+        return 0
+    manager = BixBenchCapsuleManager(
+        cache_dir=args.cache_dir,
+        revision=args.revision,
+    )
+    for idx, capsule in enumerate(capsules, start=1):
+        info = manager.ensure_capsule(capsule, extract=args.extract)
+        status = "extracted" if args.extract else "downloaded"
+        print(f"[{idx}/{len(capsules)}] {status}: {info.filename}")
+    print(f"BixBench cache ready: {Path(args.cache_dir).resolve()}")
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -783,7 +871,41 @@ def build_parser() -> argparse.ArgumentParser:
                      help="Enable self-consistency voting: run the inner mode N times "
                           "and majority-vote the answer. Configure N via config YAML "
                           "(self_consistency.n, default 5).")
+    run.add_argument("--bixbench-form", choices=["mcq", "open"],
+                     default=None,
+                     help="BixBench only: choose closed-book MCQ adaptation or "
+                          "official-style open-answer rows.")
+    run.add_argument("--bixbench-capsules", action="store_true",
+                     help="BixBench only: require already-extracted data capsules "
+                          "and attach capsule_path to each task. Run "
+                          "`biomedarena prepare-bixbench --extract` first.")
+    run.add_argument("--bixbench-capsule-cache", default="data/cache/bixbench",
+                     help="BixBench capsule cache root. Default: data/cache/bixbench.")
+    run.add_argument("--bixbench-offline-metadata", action="store_true",
+                     help="BixBench only: skip online source verification and "
+                          "allow loading from an existing HuggingFace cache. "
+                          "Use only when the cache was prepared intentionally.")
     run.set_defaults(func=_cmd_run)
+
+    prep = sub.add_parser(
+        "prepare-bixbench",
+        help="Download and optionally extract official BixBench data capsules.",
+    )
+    prep.add_argument("--limit", type=int, default=None,
+                      help="Limit number of BixBench rows used to resolve capsules.")
+    prep.add_argument("--revision", default="main",
+                      help="HuggingFace revision/tag, e.g. main, v1.5, or v1.0.")
+    prep.add_argument("--cache-dir", default="data/cache/bixbench",
+                      help="Cache root for capsule archives and extracted folders.")
+    prep.add_argument("--extract", action="store_true",
+                      help="Safely extract each downloaded CapsuleFolder zip.")
+    prep.add_argument("--dry-run", action="store_true",
+                      help="Only list capsules; do not download.")
+    prep.add_argument("--offline-metadata", action="store_true",
+                      help="Skip online source verification before reading metadata.")
+    prep.add_argument("--print-limit", type=int, default=20,
+                      help="Maximum capsules to print in --dry-run mode.")
+    prep.set_defaults(func=_cmd_prepare_bixbench)
 
     return parser
 

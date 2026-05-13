@@ -249,6 +249,8 @@ def _judge_provider_and_key() -> tuple[str, str | None]:
     """
     import os
     provider_override = os.environ.get("BIOMEDARENA_JUDGE_PROVIDER", "").strip().lower()
+    if provider_override == "openai":
+        return "openai", os.environ.get("OPENAI_API_KEY")
     if provider_override == "gemini":
         return "gemini", os.environ.get("GEMINI_API_KEY")
     if provider_override == "anthropic":
@@ -260,10 +262,10 @@ def get_judge() -> LLMJudge:
     global _default_judge
     if _default_judge is None:
         provider, api_key = _judge_provider_and_key()
+        model = _configured_judge_model(provider)
         _default_judge = LLMJudge(
             provider=provider,
-            model="claude-sonnet-4-5" if provider == "anthropic"
-                   else "gemini-2.5-flash",
+            model=model,
             api_key=api_key,
         )
     return _default_judge
@@ -275,15 +277,15 @@ def get_judge() -> LLMJudge:
 #
 # Two routes depending on ``task["answer_type"]``:
 #
-#   Route A (open-ended): judge is the PRIMARY scorer; its verdict
-#     is authoritative. The deterministic scorer still runs; its
-#     result is metadata only, preserved in
-#     ``scorer_result.details.primary_verdict``.
-#
-#   Route B (MCQ / exactMatch / exactNumeric / other structured): primary
+#   Route A (MCQ / exactMatch / exactNumeric / other structured): primary
 #     deterministic scorer runs first; judge is invoked as FALLBACK only
 #     when primary says incorrect and candidate is non-empty. Judge can only
 #     PROMOTE (incorrect -> correct), never demote.
+#
+#   Route B (open-ended): judge is the PRIMARY scorer; its verdict
+#     is authoritative. The deterministic scorer still runs; its
+#     result is metadata only, preserved in
+#     ``scorer_result.details.primary_verdict``.
 
 
 OPEN_ANSWER_TYPES = {"opentext", "openended", "freetext"}
@@ -314,6 +316,20 @@ def is_open_ended(task_or_answer_type: Any) -> bool:
 
 DEFAULT_JUDGE_MODEL = "claude-sonnet-4-5"
 
+def _default_judge_model_for_provider(provider: str) -> str:
+    return {
+        "anthropic": "claude-sonnet-4-5",
+        "gemini": "gemini-2.5-flash",
+        "openai": "gpt-4.1-mini",
+    }.get(provider, DEFAULT_JUDGE_MODEL)
+
+
+def _configured_judge_model(provider: str) -> str:
+    import os
+    override = os.environ.get("BIOMEDARENA_JUDGE_MODEL", "").strip()
+    return override or _default_judge_model_for_provider(provider)
+
+
 def pick_judge_model(target_backbone: str = "") -> str:
     """Return the LLM-as-judge model.
 
@@ -339,10 +355,8 @@ def _get_judge_for(target_backbone: str | None) -> LLMJudge:
     """Return (and cache) an ``LLMJudge`` instance for the correct
     judge model given a target backbone."""
     global _default_judge
-    import os
-    desired = pick_judge_model(target_backbone)
     provider, api_key = _judge_provider_and_key()
-    actual_model = desired
+    actual_model = _configured_judge_model(provider)
     if (
         _default_judge is None
         or _default_judge.llm.model != actual_model
@@ -386,6 +400,46 @@ async def score_with_fallback(
     answer_type = str(task.get("answer_type", ""))
     gold = task.get("answer", "")
     context = task.get("context")
+
+    # BixBench official-compatible open-answer routing.  The public BixBench
+    # rows carry an `eval_mode` field (`str_verifier`, `range_verifier`,
+    # `llm_verifier`).  Respect that before the generic openText judge path so
+    # numeric/range BixBench questions are not reduced to free-text judging.
+    if isinstance(context, dict) and context.get("scorer_kind") == "bixbench_open":
+        from harness.eval.bixbench_official import score_bixbench_open_answer
+
+        async def _judge_fn(question: str, expected: str, predicted: str) -> dict[str, Any]:
+            if not judge_enabled() or not str(predicted or "").strip():
+                return {"correct": False, "reasoning": "judge_disabled", "error": True}
+            judge = _get_judge_for(target_backbone)
+            return await judge.judge(question=question, expected=expected, predicted=predicted)
+
+        result = await score_bixbench_open_answer(
+            task,
+            prediction,
+            judge_fn=_judge_fn,
+        )
+        details = dict(result.get("details") or {})
+        judge_model = None
+        if details.get("judge_invoked"):
+            provider, _ = _judge_provider_and_key()
+            judge_model = _configured_judge_model(provider)
+        return {
+            "correct": bool(result.get("correct")),
+            "method": str(result.get("method") or "bixbench_open"),
+            "details": {
+                "primary_verdict": bool(result.get("correct")),
+                "primary_method": str(result.get("method") or "bixbench_open"),
+                "is_open_ended": True,
+                "judge_primary": "llm" in str(result.get("method") or ""),
+                "judge_model": judge_model,
+                "judge_raw": details.get("judge_raw"),
+                "judge_invoked": bool(details.get("judge_invoked")),
+                "judge_verdict": bool(result.get("correct")) if details.get("judge_invoked") else None,
+                "judge_error": details.get("judge_error"),
+                "bixbench_eval_mode": details.get("eval_mode"),
+            },
+        }
 
     # Always run primary so details.primary_* is populated.
     try:
