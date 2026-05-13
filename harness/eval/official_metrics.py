@@ -45,6 +45,8 @@ def compute_official_metrics(benchmark: str, records: Iterable[Any]) -> dict[str
         return _compute_rna_metrics(rows)
     if "bacbench" in joined:
         return _compute_bacbench_metrics(rows)
+    if "bixbench" in joined:
+        return _compute_bixbench_metrics(rows)
 
     return {"status": "not_applicable", "reason": "no_official_dataset_level_metric_registered"}
 
@@ -279,6 +281,45 @@ def _compute_bacbench_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
     if "binary" in metric_hint:
         return _compute_binary_metrics(rows, benchmark_family="bacbench")
     return _compute_predictive_metrics(rows, benchmark_family="bacbench")
+
+
+def _compute_bixbench_metrics(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    scored = [
+        row for row in rows
+        if row.get("task_success") is not None
+    ]
+    if not scored:
+        return {
+            "status": "unavailable",
+            "benchmark_family": "bixbench",
+            "reason": "no_scored_rows",
+            "n_records": len(rows),
+        }
+    contexts = [row.get("context") or {} for row in scored]
+    forms = {
+        str(ctx.get("official_form") or ctx.get("form") or "").strip()
+        for ctx in contexts
+        if isinstance(ctx, dict)
+    }
+    eval_modes = {
+        str(ctx.get("eval_mode") or "").strip()
+        for ctx in contexts
+        if isinstance(ctx, dict) and ctx.get("eval_mode")
+    }
+    return {
+        "status": "ok",
+        "benchmark_family": "bixbench",
+        "metric_type": "accuracy",
+        "accuracy": sum(1 for row in scored if row.get("task_success")) / len(scored),
+        "n_records": len(rows),
+        "n_scored": len(scored),
+        "forms": sorted(form for form in forms if form),
+        "eval_modes": sorted(mode for mode in eval_modes if mode),
+        "note": (
+            "MCQ rows reproduce the BixBench closed-book MCQ adaptation; "
+            "open rows use eval_mode-specific str/range/LLM verification."
+        ),
+    }
 
 
 def _compute_regression_metrics(rows: list[dict[str, Any]], *, benchmark_family: str) -> dict[str, Any]:

@@ -162,17 +162,47 @@ register_config(BenchmarkHarnessConfig(
 
 
 # ---------------------------------------------------------------- bixbench
+def _format_bixbench_prompt(task: dict) -> str:
+    question = str(task.get("question", "")).strip()
+    ctx = task.get("context") or {}
+    parts = [question]
+    if ctx.get("capsule_path"):
+        parts.extend([
+            "",
+            "## BixBench data capsule",
+            f"Capsule path: {ctx['capsule_path']}",
+            "Use `bixbench_sandbox_exec` to inspect and analyze this capsule. "
+            "In Docker mode it is mounted read-only at `/capsule`; write outputs "
+            "under `/work`.",
+        ])
+    if ctx.get("official_form") == "open" and ctx.get("eval_mode"):
+        parts.extend([
+            "",
+            "## Official evaluation mode",
+            str(ctx["eval_mode"]),
+        ])
+    if ctx.get("official_form") == "open":
+        parts.append("End with the final value or concise answer only.")
+    return "\n".join(parts)
+
+
 for _nm in ("bixbench", "bixbench_closed_book"):
     register_config(BenchmarkHarnessConfig(
         name=_nm,
         system_prompt_hint=(
-            "You are solving a bioinformatics task. Use sequence tools, "
-            "gene / protein lookup, and literature search as needed."
+            "You are solving a BixBench bioinformatics task. Follow the task's "
+            "available evidence and answer format exactly. If a data capsule "
+            "section is present, use the provided sandbox instructions there."
         ),
         tool_categories=[
             "protein", "genetics", "literature", "search", "sequence",
-            "gene_expression",
+            "gene_expression", "code",
         ],
+        context_formatter=_format_bixbench_prompt,
+        expected_answer_format=(
+            "For multiple-choice BixBench prompts, return only the option letter. "
+            "For capsule-backed open prompts, end with the final value or concise answer only."
+        ),
     ))
 
 

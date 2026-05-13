@@ -1,7 +1,9 @@
 """Bioinformatics analysis benchmark loader.
 
-The public loader uses the official FutureHouse BixBench dataset and
-normalizes rows into deterministic closed-book MCQ tasks.
+The loader uses the official FutureHouse BixBench dataset.  The default
+``form="mcq"`` preserves the current lightweight closed-book MCQ adaptation;
+``form="open"`` exposes the official open-answer reference fields and can be
+paired with downloaded data capsules via ``with_capsules=True``.
 """
 
 from __future__ import annotations
@@ -31,7 +33,10 @@ def load_bixbench_tasks(limit: int | None = None,
                           split: str = "train",
                           form: str = "mcq",
                           revision: str | None = None,
-                          require_online: bool = True) -> list[dict[str, Any]]:
+                          require_online: bool = True,
+                          with_capsules: bool = False,
+                          capsule_cache_dir: str = "data/cache/bixbench",
+                          require_capsules: bool = False) -> list[dict[str, Any]]:
     """Load bioinformatics analysis tasks.
 
     Parameters
@@ -45,6 +50,10 @@ def load_bixbench_tasks(limit: int | None = None,
     form
         'mcq' (default) — deterministic shuffle of ideal + distractors.
         'open' — MCQ options hidden, free-text ideal answer.
+    with_capsules
+        Attach paths for already-extracted ``CapsuleFolder-{uuid}.zip`` data
+        capsules. This never downloads; run ``biomedarena prepare-bixbench``
+        first.
     """
     try:
         from datasets import load_dataset
@@ -98,29 +107,44 @@ def load_bixbench_tasks(limit: int | None = None,
         # Prefer the stable short_id/question_id if present, else the HF row id.
         qid = (row.get("question_id") or row.get("short_id")
                or row.get("id") or f"bixbench_{len(tasks)}")
+        metadata = {
+            "capsule_uuid": row.get("capsule_uuid"),
+            "data_folder": row.get("data_folder"),
+            "hypothesis": row.get("hypothesis"),
+            "categories": row.get("categories"),
+            "paper": row.get("paper"),
+            "eval_mode": row.get("eval_mode"),
+            "result": row.get("result"),
+            "answer_bool": row.get("answer"),
+            "version": row.get("version"),
+            "form": form,
+            "source": "bixbench_hf",
+            "dataset": "futurehouse/BixBench",
+            "split": hf_split,
+            "revision": source_info["revision"],
+            "source_sha": source_info["sha"],
+        }
+        context = {
+            "source": "bixbench_hf",
+            "dataset": "futurehouse/BixBench",
+            "capsule_uuid": row.get("capsule_uuid"),
+            "data_folder": row.get("data_folder"),
+            "eval_mode": row.get("eval_mode"),
+            "official_form": form,
+            "official_metric": "bixbench_open_answer" if form == "open" else "bixbench_mcq_accuracy",
+        }
 
         if form == "open":
             tasks.append({
                 "id": str(qid),
-                "question": question + "\n\nAnswer in your own words.",
+                "question": question + "\n\nUse the provided data capsule when available. Answer in your own words.",
                 "choices": None,
                 "answer": str(ideal),
                 "answer_type": "openText",
                 "category": f"BixBench/{row.get('categories','')}",
-                "metadata": {
-                    "capsule_uuid": row.get("capsule_uuid"),
-                    "hypothesis": row.get("hypothesis"),
-                    "categories": row.get("categories"),
-                    "paper": row.get("paper"),
-                    "eval_mode": row.get("eval_mode"),
-                    "form": "open",
-                    "source": "bixbench_hf",
-                    "dataset": "futurehouse/BixBench",
-                    "split": hf_split,
-                    "revision": source_info["revision"],
-                    "source_sha": source_info["sha"],
-                },
-                "scorer_kind": "open",
+                "metadata": metadata,
+                "context": {**context, "scorer_kind": "bixbench_open"},
+                "scorer_kind": "bixbench_open",
             })
         else:
             seed = _seed_for(str(qid))
@@ -137,24 +161,24 @@ def load_bixbench_tasks(limit: int | None = None,
                 "answer_type": "multipleChoice",
                 "category": f"BixBench/{row.get('categories','')}",
                 "metadata": {
-                    "capsule_uuid": row.get("capsule_uuid"),
-                    "hypothesis": row.get("hypothesis"),
-                    "categories": row.get("categories"),
-                    "paper": row.get("paper"),
-                    "eval_mode": row.get("eval_mode"),
+                    **metadata,
                     "ideal_letter": ideal_letter,
                     "ideal": str(ideal),
                     "shuffle_seed": seed,
-                    "form": "mcq",
-                    "source": "bixbench_hf",
-                    "dataset": "futurehouse/BixBench",
-                    "split": hf_split,
-                    "revision": source_info["revision"],
-                    "source_sha": source_info["sha"],
                 },
+                "context": {**context, "ideal": str(ideal), "scorer_kind": "bixbench_mcq"},
                 "scorer_kind": "mcq",
             })
         if limit and len(tasks) >= limit:
             break
+
+    if with_capsules and tasks:
+        from harness.eval.bixbench_official import attach_capsule_paths
+        tasks = attach_capsule_paths(
+            tasks,
+            cache_dir=capsule_cache_dir,
+            revision=revision or "main",
+            require=require_capsules,
+        )
 
     return tasks

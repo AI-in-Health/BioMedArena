@@ -161,6 +161,53 @@ task dict conforms to the shape documented in ``eval_tasks`` above.
 | `load_superchem_tasks` | `harness.eval.bench_superchem` |
 | `load_supergpqa_tasks` | `harness.eval.bench_supergpqa` |
 
+### BixBench official-compatible support
+
+`load_bixbench_tasks(form="mcq")` keeps the lightweight closed-book MCQ
+adaptation over the official `futurehouse/BixBench` rows. Use
+`load_bixbench_tasks(form="open", with_capsules=True)` after preparing the
+capsule cache to expose the official open-answer task fields with
+`capsule_path` metadata.
+
+```bash
+biomedarena prepare-bixbench --revision main --extract
+biomedarena run --benchmark bixbench --bixbench-form open --bixbench-capsules \
+  --backbone gemini-3-flash-preview --tools all --reasoning-mode heavy
+```
+
+For intentionally prepared offline caches, pass
+`--bixbench-offline-metadata` to `biomedarena run` to skip online HuggingFace
+source verification. The default remains conservative and requires online
+verification so stale local caches are not used silently.
+
+The capsule and sandbox helpers live in `harness.eval.bixbench_official`:
+
+- `BixBenchCapsuleManager`: downloads and safely extracts
+  `CapsuleFolder-{uuid}.zip` files from HuggingFace.
+- `BixBenchSandbox`: runs Python/R/bash commands in Docker with the capsule
+  mounted read-only at `/capsule` and writable workdir `/work`.
+- `score_bixbench_open_answer`: respects BixBench `eval_mode`
+  (`str_verifier`, `range_verifier`, `llm_verifier`).
+- `score_bixbench_mcq`: supports deterministic MCQ scoring, opt-out handling,
+  and majority voting.
+
+Build the optional Docker image with:
+
+```bash
+docker build -t biomedarena/bixbench-sandbox:latest docker/bixbench
+```
+
+The image includes a Python scientific stack plus common R/Bioconductor
+packages used by BixBench notebooks, including `DESeq2`, `apeglm`,
+`clusterProfiler`, `org.Hs.eg.db`, and `enrichplot`. Docker Desktop on macOS is
+also detected from `/Applications/Docker.app` when the `docker` command is not
+on `PATH`.
+
+This integration is official-compatible rather than a vendored copy of the
+FutureHouse runner: BioMedArena prepares the same capsule surface and uses
+BixBench `eval_mode` hints for scoring, while an external official evaluator can
+be pointed at the same cache if strict runner identity is required.
+
 Common kwargs: ``limit`` (max tasks), ``seed`` (for deterministic
 sampling), benchmark-specific filters (e.g. ``subsets`` for LAB-Bench
 and LAB-Bench 2, ``subset`` for MedXpertQA, ``include_chemistry`` for

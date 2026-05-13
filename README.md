@@ -7,7 +7,7 @@
 [![arXiv](https://img.shields.io/badge/arXiv-2605.06177-b31b1b.svg)](https://arxiv.org/abs/2605.06177)
 [![GitHub](https://img.shields.io/badge/GitHub-AI--in--Health%2FBioMedArena-181717.svg)](https://github.com/AI-in-Health/BioMedArena)
 [![Benchmarks](https://img.shields.io/badge/Benchmarks-166%20registered-blue.svg)](docs/benchmark_datasets.md)
-[![Tools](https://img.shields.io/badge/Tools-75%20biomedical-green.svg)](docs/tools_and_skills.md)
+[![Tools](https://img.shields.io/badge/Tools-76%20biomedical-green.svg)](docs/tools_and_skills.md)
 
 Building a deep research agent today is an exercise in glue code: the same
 backbone evaluated on the same benchmark can report different accuracies in
@@ -20,7 +20,7 @@ foundation models as biomedical deep-research agents.
 BioMedArena decouples six layers of biomedical agent evaluation: benchmark
 loading, tool exposure, tool selection, harness mode, context management, and
 scoring. The current public code exposes 166 registered benchmark entries
-(155 canonical benchmarks plus 11 deprecated compatibility aliases), 75 tools
+(155 canonical benchmarks plus 11 deprecated compatibility aliases), 76 tools
 across 9 biomedical functional families, 4 modes, and 9 registered model
 backbone IDs. Adding a new model, benchmark, or tool reduces to registering a
 small provider adapter, loader, or schema/handler pair.
@@ -221,7 +221,7 @@ python3 scripts/run_quick_suite.py
 Expected healthy output:
 
 - 166 registered benchmarks
-- 75 registered tools
+- 76 registered tools
 - 4 registered modes
 - 20/20 scorer checks passed
 
@@ -230,6 +230,23 @@ For the stricter offline release gate:
 ```bash
 python3 scripts/release_gate.py --strict
 ```
+
+Prepare the full BixBench agent setting only when you need the official
+capsule-backed protocol. This downloads the large `CapsuleFolder-{uuid}.zip`
+files explicitly instead of during normal benchmark loading:
+
+```bash
+biomedarena prepare-bixbench --revision main --extract
+docker build -t biomedarena/bixbench-sandbox:latest docker/bixbench
+biomedarena run --benchmark bixbench --bixbench-form open --bixbench-capsules \
+  --backbone gemini-3-flash-preview --tools biomed --reasoning-mode heavy
+```
+
+If you are running fully offline from a cache you prepared yourself, add
+`--bixbench-offline-metadata` to the `run` command. The open-form path is
+official-compatible: it uses the public BixBench rows, mounted data capsules,
+and `eval_mode`-specific scoring, while the external FutureHouse evaluator is
+not vendored in this repository.
 
 ## Installation
 

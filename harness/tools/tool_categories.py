@@ -20,6 +20,7 @@ TOOL_CATEGORIES: dict[str, list[str]] = {
     "compute_calculator": ["calculation", "clinical"],
     "calculator_eval": ["calculation"],
     "python_exec": ["calculation", "code"],
+    "bixbench_sandbox_exec": ["code", "genomics", "gene_expression"],
 
     # ---- Literature search / PubMed ----
     "pubmed_search": ["literature", "search", "clinical"],
