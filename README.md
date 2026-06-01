@@ -79,63 +79,63 @@ Scroll horizontally to view all benchmark columns.
       <td rowspan="10">Public LLMs</td>
       <td><a href="https://huggingface.co/arcee-ai/Trinity-Large-Thinking">Trinity-Large-Thinking</a></td>
       <td>Baseline</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>5.4</td><td>15.0</td><td>7.1</td><td>12.8</td><td>43.5</td>
+      <td>-</td><td>33.3</td><td>39.0</td><td>77.3</td><td>23.8</td><td>-</td><td>-</td><td>5.4</td><td>15.0</td><td>7.1</td><td>12.8</td><td>43.5</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/arcee-ai/Trinity-Large-Thinking">Trinity-Large-Thinking</a></td>
       <td>Ours</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>26.3</td><td>19.6</td><td>19.0</td><td>19.5</td><td>61.0</td>
+      <td>-</td><td>44.2</td><td>69.5</td><td>82.1</td><td>30.6</td><td>-</td><td>-</td><td>26.3</td><td>19.6</td><td>19.0</td><td>19.5</td><td>61.0</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16">NVIDIA Nemotron-3 Super 120B</a></td>
       <td>Baseline</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>13.2</td><td>13.1</td><td>4.8</td><td>10.7</td><td>43.6</td>
+      <td>-</td><td>37.8</td><td>50.5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>13.1</td><td>4.8</td><td>10.7</td><td>43.6</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16">NVIDIA Nemotron-3 Super 120B</a></td>
       <td>Ours</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>10.7</td><td>28.0</td><td>33.3</td><td>29.5</td><td>62.6</td>
+      <td>-</td><td>45.9</td><td>63.1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>28.0</td><td>33.3</td><td>29.5</td><td>62.6</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/PrimeIntellect/INTELLECT-3.1">INTELLECT-3.1</a></td>
       <td>Baseline</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>5.4</td><td>20.6</td><td>9.5</td><td>17.4</td><td>43.5</td>
+      <td>-</td><td>36.2</td><td>43.5</td><td>72.7</td><td>27.9</td><td>-</td><td>-</td><td>5.4</td><td>20.6</td><td>9.5</td><td>17.4</td><td>43.5</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/PrimeIntellect/INTELLECT-3.1">INTELLECT-3.1</a></td>
       <td>Ours</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>20.0</td><td>26.2</td><td>19.0</td><td>24.2</td><td>57.9</td>
+      <td>-</td><td>37.5</td><td>65.6</td><td>75.0</td><td>29.4</td><td>-</td><td>-</td><td>20.0</td><td>26.2</td><td>19.0</td><td>24.2</td><td>57.9</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/zai-org/GLM-4.5">GLM-4.5</a></td>
       <td>Baseline</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>23.9</td><td>16.8</td><td>2.4</td><td>12.8</td><td>44.8</td>
+      <td>42.0</td><td>35.3</td><td>59.2</td><td>-</td><td>-</td><td>-</td><td>-</td><td>23.9</td><td>16.8</td><td>2.4</td><td>12.8</td><td>44.8</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/zai-org/GLM-4.5">GLM-4.5</a></td>
       <td>Ours</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>30.2</td><td>28.0</td><td>28.6</td><td>28.2</td><td>61.5</td>
+      <td>45.3</td><td>36.5</td><td>63.1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>30.2</td><td>28.0</td><td>28.6</td><td>28.2</td><td>61.5</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/Qwen/Qwen3.5-397B-A17B">Qwen3.5-397B-A17B</a></td>
       <td>Baseline</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>22.4</td><td>15.0</td><td>14.3</td><td>14.8</td><td>42.5</td>
+      <td>-</td><td>40.5</td><td>54.0</td><td>79.5</td><td>23.4</td><td>-</td><td>-</td><td>22.4</td><td>15.0</td><td>14.3</td><td>14.8</td><td>42.5</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/Qwen/Qwen3.5-397B-A17B">Qwen3.5-397B-A17B</a></td>
       <td>Ours</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>35.1</td><td>28.0</td><td>14.3</td><td>24.2</td><td>57.9</td>
+      <td>-</td><td>40.8</td><td>62.2</td><td>83.1</td><td>37.7</td><td>-</td><td>-</td><td>35.1</td><td>28.0</td><td>14.3</td><td>24.2</td><td>57.9</td>
     </tr>
     <tr>
       <td rowspan="14">Commercial LLMs</td>
       <td><a href="https://developers.openai.com/api/docs/models/gpt-5.4">GPT-5.4</a></td>
       <td>Baseline</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>57.7</td><td>22.6</td><td>41.2</td><td>40.0</td><td>43.0</td><td>33.3</td><td>40.3</td><td>48.5</td>
+      <td>61.3</td><td>44.7</td><td>67.6</td><td>84.8</td><td>57.7</td><td>22.6</td><td>41.2</td><td>40.0</td><td>43.0</td><td>33.3</td><td>40.3</td><td>48.5</td>
     </tr>
     <tr>
       <td><a href="https://developers.openai.com/api/docs/models/gpt-5.4">GPT-5.4</a></td>
       <td>Ours</td>
-      <td>-</td><td>-</td><td>-</td><td>-</td><td>66.8</td><td>58.3</td><td>62.8</td><td>49.8</td><td>48.6</td><td>54.8</td><td>50.3</td><td>72.1</td>
+      <td>77.2</td><td>57.3</td><td>70.0</td><td>91.8</td><td>66.8</td><td>58.3</td><td>62.8</td><td>49.8</td><td>48.6</td><td>54.8</td><td>50.3</td><td>72.1</td>
     </tr>
     <tr>
       <td><a href="https://blog.google/products/gemini/gemini-3-flash/">Gemini 3 Flash</a></td>
