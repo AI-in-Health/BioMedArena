@@ -9,13 +9,14 @@
 [![Benchmarks](https://img.shields.io/badge/Benchmarks-166%20registered-blue.svg)](docs/benchmark_datasets.md)
 [![Tools](https://img.shields.io/badge/Tools-76%20biomedical-green.svg)](docs/tools_and_skills.md)
 
-Building a deep research agent today is an exercise in glue code: the same
-backbone evaluated on the same benchmark can report different accuracies in
-different papers because the harness and tool registry differ, and integrating
-a new foundation model into a comparable evaluation surface can cost weeks of
-model-specific engineering. We call this the *per-paper engineering tax* and
-release BioMedArena, an open-source toolkit and arena for fair comparison of
-foundation models as biomedical deep-research agents.
+Reproducing and comparing deep research agents today is hard: the same
+backbone evaluated on the same benchmark can report different accuracies across
+papers because the harness and tool registry differ, and integrating a new
+model into a comparable evaluation surface costs weeks of model-specific
+engineering. These are symptoms of a broader reproducibility problem in deep
+research agent research. We release BioMedArena, an open-source toolkit that
+addresses this reproducibility gap and provides an arena for comparing
+biomedical deep research agents under a shared evaluation environment.
 
 BioMedArena decouples six layers of biomedical agent evaluation: benchmark
 loading, tool exposure, tool selection, harness mode, context management, and
@@ -79,52 +80,52 @@ Scroll horizontally to view all benchmark columns.
       <td rowspan="10">Public LLMs</td>
       <td><a href="https://huggingface.co/arcee-ai/Trinity-Large-Thinking">Trinity-Large-Thinking</a></td>
       <td>Baseline</td>
-      <td>-</td><td>33.3</td><td>39.0</td><td>77.3</td><td>23.8</td><td>-</td><td>-</td><td>5.4</td><td>15.0</td><td>7.1</td><td>12.8</td><td>43.5</td>
+      <td>41.9</td><td>33.3</td><td>39.0</td><td>77.3</td><td>23.8</td><td>-</td><td>-</td><td>5.4</td><td>15.0</td><td>7.1</td><td>12.8</td><td>43.5</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/arcee-ai/Trinity-Large-Thinking">Trinity-Large-Thinking</a></td>
       <td>Ours</td>
-      <td>-</td><td>44.2</td><td>69.5</td><td>82.1</td><td>30.6</td><td>-</td><td>-</td><td>26.3</td><td>19.6</td><td>19.0</td><td>19.5</td><td>61.0</td>
+      <td>47.7</td><td>44.2</td><td>69.5</td><td>82.1</td><td>30.6</td><td>-</td><td>-</td><td>26.3</td><td>19.6</td><td>19.0</td><td>19.5</td><td>61.0</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16">NVIDIA Nemotron-3 Super 120B</a></td>
       <td>Baseline</td>
-      <td>-</td><td>37.8</td><td>50.5</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>13.1</td><td>4.8</td><td>10.7</td><td>43.6</td>
+      <td>58.7</td><td>37.8</td><td>50.5</td><td>79.2</td><td>32.5</td><td>-</td><td>-</td><td>13.2</td><td>13.1</td><td>4.8</td><td>10.7</td><td>43.6</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16">NVIDIA Nemotron-3 Super 120B</a></td>
       <td>Ours</td>
-      <td>-</td><td>45.9</td><td>63.1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td>28.0</td><td>33.3</td><td>29.5</td><td>62.6</td>
+      <td>65.4</td><td>45.9</td><td>63.1</td><td>82.5</td><td>39.6</td><td>-</td><td>-</td><td>10.7</td><td>28.0</td><td>33.3</td><td>29.5</td><td>62.6</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/PrimeIntellect/INTELLECT-3.1">INTELLECT-3.1</a></td>
       <td>Baseline</td>
-      <td>-</td><td>36.2</td><td>43.5</td><td>72.7</td><td>27.9</td><td>-</td><td>-</td><td>5.4</td><td>20.6</td><td>9.5</td><td>17.4</td><td>43.5</td>
+      <td>41.1</td><td>36.2</td><td>43.5</td><td>72.7</td><td>27.9</td><td>-</td><td>-</td><td>5.4</td><td>20.6</td><td>9.5</td><td>17.4</td><td>43.5</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/PrimeIntellect/INTELLECT-3.1">INTELLECT-3.1</a></td>
       <td>Ours</td>
-      <td>-</td><td>37.5</td><td>65.6</td><td>75.0</td><td>29.4</td><td>-</td><td>-</td><td>20.0</td><td>26.2</td><td>19.0</td><td>24.2</td><td>57.9</td>
+      <td>48.2</td><td>37.5</td><td>65.6</td><td>75.0</td><td>29.4</td><td>-</td><td>-</td><td>20.0</td><td>26.2</td><td>19.0</td><td>24.2</td><td>57.9</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/zai-org/GLM-4.5">GLM-4.5</a></td>
       <td>Baseline</td>
-      <td>42.0</td><td>35.3</td><td>59.2</td><td>-</td><td>-</td><td>-</td><td>-</td><td>23.9</td><td>16.8</td><td>2.4</td><td>12.8</td><td>44.8</td>
+      <td>42.0</td><td>35.3</td><td>59.2</td><td>79.2</td><td>21.1</td><td>-</td><td>-</td><td>23.9</td><td>16.8</td><td>2.4</td><td>12.8</td><td>44.8</td>
     </tr>
     <tr>
       <td><a href="https://huggingface.co/zai-org/GLM-4.5">GLM-4.5</a></td>
       <td>Ours</td>
-      <td>45.3</td><td>36.5</td><td>63.1</td><td>-</td><td>-</td><td>-</td><td>-</td><td>30.2</td><td>28.0</td><td>28.6</td><td>28.2</td><td>61.5</td>
+      <td>45.3</td><td>36.5</td><td>63.1</td><td>81.2</td><td>28.3</td><td>-</td><td>-</td><td>30.2</td><td>28.0</td><td>28.6</td><td>28.2</td><td>61.5</td>
     </tr>
     <tr>
-      <td><a href="https://huggingface.co/Qwen/Qwen3.5-397B-A17B">Qwen3.5-397B-A17B</a></td>
+      <td><a href="https://huggingface.co/Qwen/Qwen3-235B-A22B">Qwen3-235B-A22B</a></td>
       <td>Baseline</td>
-      <td>-</td><td>40.5</td><td>54.0</td><td>79.5</td><td>23.4</td><td>-</td><td>-</td><td>22.4</td><td>15.0</td><td>14.3</td><td>14.8</td><td>42.5</td>
+      <td>27.9</td><td>40.5</td><td>54.0</td><td>79.5</td><td>23.4</td><td>-</td><td>-</td><td>22.4</td><td>15.0</td><td>14.3</td><td>14.8</td><td>42.5</td>
     </tr>
     <tr>
-      <td><a href="https://huggingface.co/Qwen/Qwen3.5-397B-A17B">Qwen3.5-397B-A17B</a></td>
+      <td><a href="https://huggingface.co/Qwen/Qwen3-235B-A22B">Qwen3-235B-A22B</a></td>
       <td>Ours</td>
-      <td>-</td><td>40.8</td><td>62.2</td><td>83.1</td><td>37.7</td><td>-</td><td>-</td><td>35.1</td><td>28.0</td><td>14.3</td><td>24.2</td><td>57.9</td>
+      <td>32.4</td><td>40.8</td><td>62.2</td><td>83.1</td><td>37.7</td><td>-</td><td>-</td><td>35.1</td><td>28.0</td><td>14.3</td><td>24.2</td><td>57.9</td>
     </tr>
     <tr>
       <td rowspan="14">Commercial LLMs</td>
@@ -369,7 +370,7 @@ python3 -m pytest tests/smoke -q -m "not slow"
 ```bibtex
 @article{wu2026biomedarena,
   title={BioMedArena: An Open-source Toolkit for Building and Evaluating Biomedical Deep Research Agents},
-  author={Wu, J and Zhou, H and Zeng, M and Zhu, J and Wu, J and Pan, J and Wu, S and Wu, H and Liu, F and Clifton, D A},
+  author={Wu, J and Zhou, H and Zeng, M and Zhu, J and Wu, J and Pan, J and Noori, A and Wu, S and Wu, H and Liu, F and Clifton, D A},
   journal={arXiv preprint arXiv:2605.06177},
   year={2026}
 }
